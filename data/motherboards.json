@@ -1,0 +1,26 @@
+[
+    {
+        "id": "mb-000000001",
+        "name": "ASUS TUF GAMING B550-PLUS",
+        "socket": "AM4",
+        "form_factor": "ATX"
+    },
+    {
+        "id": "mb-000000002",
+        "name": "MSI MAG B550M MORTAR WIFI",
+        "socket": "AM4",
+        "form_factor": "Micro-ATX"
+    },
+    {
+        "id": "mb-000000003",
+        "name": "MSI PRO B760-P WIFI DDR4",
+        "socket": "LGA1700",
+        "form_factor": "ATX"
+    },
+    {
+        "id": "mb-000000004",
+        "name": "ASUS ROG STRIX B760-I GAMING WIFI",
+        "socket": "LGA1700",
+        "form_factor": "Mini-ITX"
+    }
+]
