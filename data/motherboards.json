@@ -3,42 +3,70 @@
         "id": "mb-000000001",
         "name": "ASUS TUF GAMING B550-PLUS",
         "socket": "AM4",
-        "form_factor": "ATX"
+        "form_factor": "ATX",
+        "memory_type": "DDR4",
+        "memory_slots": 4,
+        "max_memory_gb": 128,
+        "wifi": false
     },
     {
         "id": "mb-000000002",
         "name": "MSI MAG B550M MORTAR WIFI",
         "socket": "AM4",
-        "form_factor": "Micro-ATX"
+        "form_factor": "Micro-ATX",
+        "memory_type": "DDR4",
+        "memory_slots": 4,
+        "max_memory_gb": 128,
+        "wifi": true
     },
     {
         "id": "mb-000000003",
         "name": "MSI PRO B760-P WIFI DDR4",
         "socket": "LGA1700",
-        "form_factor": "ATX"
+        "form_factor": "ATX",
+        "memory_type": "DDR4",
+        "memory_slots": 4,
+        "max_memory_gb": 128,
+        "wifi": true
     },
     {
         "id": "mb-000000004",
         "name": "ASUS ROG STRIX B760-I GAMING WIFI",
         "socket": "LGA1700",
-        "form_factor": "Mini-ITX"
+        "form_factor": "Mini-ITX",
+        "memory_type": "DDR5",
+        "memory_slots": 2,
+        "max_memory_gb": 96,
+        "wifi": true
     },
     {
         "id": "mb-000000005",
         "name": "ASUS TUF GAMING B650-PLUS",
         "socket": "AM5",
-        "form_factor": "ATX"
+        "form_factor": "ATX",
+        "memory_type": "DDR5",
+        "memory_slots": 4,
+        "max_memory_gb": 192,
+        "wifi": false
     },
     {
         "id": "mb-000000006",
         "name": "MSI MAG B650M MORTAR WIFI",
         "socket": "AM5",
-        "form_factor": "Micro-ATX"
+        "form_factor": "Micro-ATX",
+        "memory_type": "DDR5",
+        "memory_slots": 4,
+        "max_memory_gb": 192,
+        "wifi": true
     },
     {
         "id": "mb-000000007",
         "name": "ASUS ROG STRIX B650E-I GAMING WIFI",
         "socket": "AM5",
-        "form_factor": "Mini-ITX"
+        "form_factor": "Mini-ITX",
+        "memory_type": "DDR5",
+        "memory_slots": 2,
+        "max_memory_gb": 96,
+        "wifi": true
     }
 ]

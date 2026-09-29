@@ -1,0 +1,93 @@
+[
+    {
+        "name": "Corsair Vengeance LPX 16GB",
+        "memory_type": "DDR4",
+        "capacity_gb": 16,
+        "modules": 2,
+        "speed_mhz": 3200
+    },
+    {
+        "name": "Corsair Vengeance LPX 32GB",
+        "memory_type": "DDR4",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 3200
+    },
+    {
+        "name": "G.Skill Ripjaws V 16GB",
+        "memory_type": "DDR4",
+        "capacity_gb": 16,
+        "modules": 2,
+        "speed_mhz": 3600
+    },
+    {
+        "name": "G.Skill Ripjaws V 32GB",
+        "memory_type": "DDR4",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 3600
+    },
+    {
+        "name": "TeamGroup T-Force Vulcan Z 16GB",
+        "memory_type": "DDR4",
+        "capacity_gb": 16,
+        "modules": 2,
+        "speed_mhz": 3200
+    },
+    {
+        "name": "TeamGroup T-Force Vulcan Z 32GB",
+        "memory_type": "DDR4",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 3200
+    },
+    {
+        "name": "Corsair Vengeance 32GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 6000
+    },
+    {
+        "name": "Corsair Vengeance 64GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 64,
+        "modules": 2,
+        "speed_mhz": 6000
+    },
+    {
+        "name": "G.Skill Flare X5 32GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 6000
+    },
+    {
+        "name": "G.Skill Flare X5 64GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 64,
+        "modules": 2,
+        "speed_mhz": 6000
+    },
+    {
+        "name": "G.Skill Trident Z5 Neo 32GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 6000
+    },
+    {
+        "name": "TEAMGROUP T-Create Expert 32GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 6000
+    },
+    {
+        "name": "Crucial Pro 32GB",
+        "memory_type": "DDR5",
+        "capacity_gb": 32,
+        "modules": 2,
+        "speed_mhz": 5600
+    }
+]
