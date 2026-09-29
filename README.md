@@ -10,7 +10,7 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 
 ## Current Features
 
-- Loads CPU, GPU, motherboard, case, and PSU catalogs from JSON files in `data/`.
+- Loads CPU, GPU, storage, motherboard, case, and PSU catalogs from JSON files in `data/`.
 - Finds motherboards matching a selected CPU's socket, optionally filtered by form factor.
 - Finds cases that support a matching motherboard form factor and the selected GPU's length.
 - Lists PSUs that meet a basic estimated wattage requirement for the selected CPU and GPU.
@@ -25,18 +25,20 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 From the project root, run:
 
 ```bash
-python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --form-factor ATX
+python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000002 --form-factor ATX
 ```
 
-The CPU and GPU IDs must exist in `data/cpus.json` and `data/gpus.json`. The selected GPU is required and shown in the results, but motherboard matching still uses the CPU socket and optional form factor. `--gpu` is also accepted as an alias for `--gpu-id`. To list all motherboards with a compatible socket, omit `--form-factor`:
+> [!NOTE]
+> The CPU, GPU, and Storage IDs must exist in `data/cpus.json`, `data/gpus.json`, `data/storage.json`. The selected GPU is required and shown in the results, but motherboard matching still uses the CPU socket and optional form factor. `--gpu` is also accepted as an alias for `--gpu-id`. Same thing with `--cpu` and `--storage` To list all motherboards with a compatible socket, omit `--form-factor`:
 
 ```bash
-python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001
+python3 app/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000002
 ```
 
 When provided, the form factor must exactly match a value in `data/motherboards.json`, such as `ATX`, `Micro-ATX`, or `Mini-ITX`.
 
-PSU filtering uses a rough minimum-wattage estimate: CPU TDP + GPU TDP + 200 W for the rest of the system. This is only a screening heuristic, not a guarantee of compatibility or safety; check the component and PSU manufacturers' recommendations. The efficiency label is displayed but does not determine PSU quality or wattage compatibility.
+> [!NOTE]
+> PSU filtering uses a rough minimum-wattage estimate: CPU TDP + GPU TDP + 200 W for the rest of the system. This is only a screening heuristic, not a guarantee of compatibility or safety; check the component and PSU manufacturers' recommendations. The efficiency label is displayed but does not determine PSU quality or wattage compatibility.
 
 ## Data
 
@@ -55,6 +57,14 @@ PSU filtering uses a rough minimum-wattage estimate: CPU TDP + GPU TDP + 200 W f
 - `socket`: motherboard CPU socket
 - `form_factor`: motherboard size, such as `ATX` or `Micro-ATX`
 
+`data/storage.json` contains storage records with these fields:
+
+- `id`: unique storage identifier
+- `name`: storage name
+- `type`: storage type (`SATA SSD`, `NVMe SSD`, `SATA HDD`, etc.)
+- `size_gb`: amount of gigabytes of storage
+- `pcie_compatibility`: PCIe compatible generation
+
 `data/gpus.json` contains GPU records with these fields:
 
 - `id`: unique GPU identifier
@@ -63,7 +73,8 @@ PSU filtering uses a rough minimum-wattage estimate: CPU TDP + GPU TDP + 200 W f
 - `tdp`: graphics card power in watts, as an integer
 - `length_mm`: exact card variant length in millimeters
 
-GPU entries are specific partner-card variants because physical length differs across cards using the same GPU chip.
+> [!NOTE]
+> GPU entries are specific partner-card variants because physical length differs across cards using the same GPU chip.
 
 `data/cases.json` contains case records with these fields:
 
@@ -75,7 +86,8 @@ GPU entries are specific partner-card variants because physical length differs a
 - `max_cpu_cooler_height_mm`: maximum air-cooler height in millimeters
 - `supported_radiator_sizes_mm`: supported AIO radiator lengths in millimeters
 
-Case results show the additional fans needed to fill all supported fan positions (`max_fans - included_fans`). This is a full-capacity count, not a recommendation that every position must be populated.
+> [!NOTE]
+> Case results show the additional fans needed to fill all supported fan positions (`max_fans - included_fans`). This is a full-capacity count, not a recommendation that every position must be populated.
 
 `data/coolers.json` contains cooler records with these fields:
 
@@ -88,7 +100,8 @@ Case results show the additional fans needed to fill all supported fan positions
 - `radiator_thickness_mm`: radiator thickness; `null` for air coolers
 - `pump_height_mm`: AIO pump height; `null` for air coolers
 
-Cooler results are filtered by CPU socket and CPU TDP, then by the selected case's air-cooler height or supported AIO radiator sizes. Maximum cooler TDP is not standardized and should be treated as a rough screening estimate, not a compatibility guarantee. AIO radiator thickness and placement constraints are recorded only partially and are not yet checked.
+> [!NOTE]
+> Cooler results are filtered by CPU socket and CPU TDP, then by the selected case's air-cooler height or supported AIO radiator sizes. Maximum cooler TDP is not standardized and should be treated as a rough screening estimate, not a compatibility guarantee. AIO radiator thickness and placement constraints are recorded only partially and are not yet checked.
 
 `data/psus.json` contains PSU records with these fields:
 

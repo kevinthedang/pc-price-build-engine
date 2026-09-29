@@ -17,6 +17,8 @@ class MotherboardCompatibilityTests(unittest.TestCase):
             cpu_id,
             "--gpu-id",
             gpu_id,
+            "--storage-id",
+            "storage-000000001",
         ]
         if form_factor is not None:
             command.extend(["--form-factor", form_factor])
@@ -72,6 +74,8 @@ class MotherboardCompatibilityTests(unittest.TestCase):
                 "cpu-000000002",
                 "--gpu-id",
                 "gpu-999999999",
+                "--storage-id",
+                "storage-000000001",
             ],
             cwd=PROJECT_ROOT,
             capture_output=True,
@@ -90,6 +94,8 @@ class MotherboardCompatibilityTests(unittest.TestCase):
                 "cpu-000000002",
                 "--gpu",
                 "gpu-000000001",
+                "--storage-id",
+                "storage-000000001",
             ],
             cwd=PROJECT_ROOT,
             capture_output=True,

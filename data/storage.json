@@ -1,0 +1,30 @@
+[
+    {
+        "id": "storage-000000001",
+        "name": "WD_BLACK SN850X 1TB",
+        "type": "NVMe SSD",
+        "size_gb": 1000,
+        "pcie_compatibility": ["PCIe 4.0 x4"]
+    },
+    {
+        "id": "storage-000000002",
+        "name": "Samsung 990 PRO 2TB",
+        "type": "NVMe SSD",
+        "size_gb": 2000,
+        "pcie_compatibility": ["PCIe 4.0 x4"]
+    },
+    {
+        "id": "storage-000000003",
+        "name": "Samsung 870 EVO 1TB",
+        "type": "SATA SSD",
+        "size_gb": 1000,
+        "pcie_compatibility": []
+    },
+    {
+        "id": "storage-000000004",
+        "name": "Seagate BarraCuda 2TB",
+        "type": "SATA HDD",
+        "size_gb": 2000,
+        "pcie_compatibility": []
+    }
+]

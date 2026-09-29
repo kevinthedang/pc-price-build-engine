@@ -20,6 +20,8 @@ class CaseCompatibilityTests(unittest.TestCase):
                 gpu_id,
                 "--form-factor",
                 form_factor,
+                "--storage-id",
+                "storage-000000001",
             ],
             cwd=PROJECT_ROOT,
             capture_output=True,

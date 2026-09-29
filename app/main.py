@@ -43,6 +43,7 @@ def format_cooler_details(cooler):
 def format_build_report(
 	cpu,
 	gpu,
+	storage,
 	motherboards,
 	compatible_psus,
 	cases,
@@ -66,6 +67,13 @@ def format_build_report(
 		f"VRAM: {gpu['vram']} GB",
 		f"TDP: {gpu['tdp']} W",
 		f"Length: {gpu['length_mm']} mm",
+		"",
+		"Storage:",
+		storage["name"],
+		f"Type: {storage['type']}",
+		f"Capacity: {storage['size_gb']} GB",
+		"PCIe compatibility: "
+		+ (", ".join(storage["pcie_compatibility"]) or "Not applicable"),
 		"",
 		"Motherboard:",
 		"Compatible options:",
@@ -163,13 +171,25 @@ def format_build_report(
 
 def main():
 	parser = argparse.ArgumentParser(description="Find compatible motherboards.")
-	parser.add_argument("--cpu-id", required=True, help="ID of the selected CPU")
+	parser.add_argument(
+		"--cpu-id",
+        "--cpu", 
+        required=True, 
+        help="ID of the selected CPU"
+    )
 	parser.add_argument(
 		"--gpu-id",
 		"--gpu",
 		dest="gpu_id",
 		required=True,
 		help="ID of the selected GPU",
+	)
+	parser.add_argument(
+		"--storage-id",
+		"--storage",
+		dest="storage_id",
+		required=True,
+		help="ID of the selected storage device",
 	)
 	parser.add_argument(
 		"--form-factor",
@@ -179,6 +199,7 @@ def main():
 
 	cpus = load_json("cpus.json")
 	gpus = load_json("gpus.json")
+	storage_devices = load_json("storage.json")
 	motherboards = load_json("motherboards.json")
 	cases = load_json("cases.json")
 	coolers = load_json("coolers.json")
@@ -191,6 +212,14 @@ def main():
 	gpu = next((item for item in gpus if item["id"] == arguments.gpu_id), None)
 	if gpu is None:
 		print(f"GPU not found: {arguments.gpu_id}")
+		return 1
+
+	storage = next(
+		(item for item in storage_devices if item["id"] == arguments.storage_id),
+		None,
+	)
+	if storage is None:
+		print(f"Storage not found: {arguments.storage_id}")
 		return 1
 
 	psus = load_json("psus.json")
@@ -232,6 +261,7 @@ def main():
 		format_build_report(
 			cpu,
 			gpu,
+			storage,
 			compatible_motherboards,
 			compatible_psus,
 			compatible_cases,

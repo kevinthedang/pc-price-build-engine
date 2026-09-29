@@ -18,6 +18,8 @@ class PsuRecommendationTests(unittest.TestCase):
                 "cpu-000000009",
                 "--gpu-id",
                 "gpu-000000004",
+                "--storage-id",
+                "storage-000000001",
             ],
             cwd=PROJECT_ROOT,
             capture_output=True,
