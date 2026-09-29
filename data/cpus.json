@@ -3,36 +3,63 @@
         "id": "cpu-000000001",
         "socket": "AM4",
         "name": "Ryzen 5 5500",
-        "tdp": 65
+        "tdp": 65,
+        "stock_cooler_included": true
     },
     {
         "id": "cpu-000000002",
         "socket": "AM4",
         "name": "Ryzen 5 5600",
-        "tdp": 65
+        "tdp": 65,
+        "stock_cooler_included": true
     },
     {
         "id": "cpu-000000003",
         "socket": "AM4",
         "name": "Ryzen 5 5600X",
-        "tdp": 65
+        "tdp": 65,
+        "stock_cooler_included": true
     },
     {
         "id": "cpu-000000004",
         "socket": "AM4",
         "name": "Ryzen 7 5800X3D",
-        "tdp": 105
+        "tdp": 105,
+        "stock_cooler_included": false
     },
     {
         "id": "cpu-000000005",
         "socket": "LGA1700",
         "name": "Core i5-12400F",
-        "tdp": 65
+        "tdp": 65,
+        "stock_cooler_included": true
     },
     {
         "id": "cpu-000000006",
         "socket": "LGA1700",
         "name": "Core i5-13600K",
-        "tdp": 125
+        "tdp": 125,
+        "stock_cooler_included": false
+    },
+    {
+        "id": "cpu-000000007",
+        "socket": "AM5",
+        "name": "Ryzen 5 7600",
+        "tdp": 65,
+        "stock_cooler_included": true
+    },
+    {
+        "id": "cpu-000000008",
+        "socket": "AM5",
+        "name": "Ryzen 7 7700",
+        "tdp": 65,
+        "stock_cooler_included": true
+    },
+    {
+        "id": "cpu-000000009",
+        "socket": "AM5",
+        "name": "Ryzen 7 7800X3D",
+        "tdp": 120,
+        "stock_cooler_included": false
     }
 ]

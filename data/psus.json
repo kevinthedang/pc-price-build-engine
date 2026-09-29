@@ -1,0 +1,20 @@
+[
+    {
+        "id": "psu-000000001",
+        "name": "Corsair RM750x (2021)",
+        "wattage": 750,
+        "efficiency": "Gold"
+    },
+    {
+        "id": "psu-000000002",
+        "name": "Corsair RM850x (2021)",
+        "wattage": 850,
+        "efficiency": "Gold"
+    },
+    {
+        "id": "psu-000000003",
+        "name": "MSI MAG A650BN",
+        "wattage": 650,
+        "efficiency": "Bronze"
+    }
+]

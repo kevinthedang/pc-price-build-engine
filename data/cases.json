@@ -1,0 +1,43 @@
+[
+    {
+        "name": "Corsair 4000D Airflow",
+        "supported_motherboard_form_factors": [
+            "Mini-ITX",
+            "Micro-ATX",
+            "ATX",
+            "E-ATX"
+        ],
+        "max_gpu_length_mm": 360,
+        "included_fans": 2,
+        "max_fans": 6,
+        "max_cpu_cooler_height_mm": 170,
+        "supported_radiator_sizes_mm": [120, 140, 240, 280, 360]
+    },
+    {
+        "name": "Cooler Master MasterBox NR200P",
+        "supported_motherboard_form_factors": ["Mini-ITX"],
+        "max_gpu_length_mm": 330,
+        "included_fans": 2,
+        "max_fans": 7,
+        "max_cpu_cooler_height_mm": 153,
+        "supported_radiator_sizes_mm": [120, 140, 240, 280]
+    },
+    {
+        "name": "Lian Li A3-mATX",
+        "supported_motherboard_form_factors": ["Micro-ATX", "Mini-ITX"],
+        "max_gpu_length_mm": 415,
+        "included_fans": 0,
+        "max_fans": 10,
+        "max_cpu_cooler_height_mm": 165,
+        "supported_radiator_sizes_mm": [240, 280, 360]
+    },
+    {
+        "name": "Fractal Design Pop Mini Air RGB Black TG Clear Tint",
+        "supported_motherboard_form_factors": ["Micro-ATX", "Mini-ITX"],
+        "max_gpu_length_mm": 365,
+        "included_fans": 3,
+        "max_fans": 5,
+        "max_cpu_cooler_height_mm": 170,
+        "supported_radiator_sizes_mm": [120, 240, 280]
+    }
+]

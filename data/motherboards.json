@@ -22,5 +22,23 @@
         "name": "ASUS ROG STRIX B760-I GAMING WIFI",
         "socket": "LGA1700",
         "form_factor": "Mini-ITX"
+    },
+    {
+        "id": "mb-000000005",
+        "name": "ASUS TUF GAMING B650-PLUS",
+        "socket": "AM5",
+        "form_factor": "ATX"
+    },
+    {
+        "id": "mb-000000006",
+        "name": "MSI MAG B650M MORTAR WIFI",
+        "socket": "AM5",
+        "form_factor": "Micro-ATX"
+    },
+    {
+        "id": "mb-000000007",
+        "name": "ASUS ROG STRIX B650E-I GAMING WIFI",
+        "socket": "AM5",
+        "form_factor": "Mini-ITX"
     }
 ]

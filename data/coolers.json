@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Thermalright Peerless Assassin 120 SE",
+        "type": "air",
+        "supported_sockets": ["AM4", "AM5", "LGA1700", "LGA1851"],
+        "height_mm": 155,
+        "max_tdp_w": 265,
+        "radiator_size_mm": null,
+        "radiator_thickness_mm": null,
+        "pump_height_mm": null
+    },
+    {
+        "name": "Thermalright Frozen Notte 240 BLACK ARGB",
+        "type": "aio",
+        "supported_sockets": ["AM4", "AM5", "LGA1700", "LGA1851"],
+        "height_mm": null,
+        "max_tdp_w": 280,
+        "radiator_size_mm": 240,
+        "radiator_thickness_mm": 27,
+        "pump_height_mm": 54
+    },
+    {
+        "name": "Thermalright Frozen Notte 360 BLACK ARGB",
+        "type": "aio",
+        "supported_sockets": ["AM4", "AM5", "LGA1700", "LGA1851"],
+        "height_mm": null,
+        "max_tdp_w": 350,
+        "radiator_size_mm": 360,
+        "radiator_thickness_mm": 27,
+        "pump_height_mm": 54
+    }
+]
