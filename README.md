@@ -1,4 +1,5 @@
 # PC Price Build Engine
+![Tests Workflow](https://github.com/kevinthedang/pc-price-build-engine/actions/workflows/tests.yml/badge.svg)
 
 A Python project for organizing PC part data, matching motherboards to CPUs, and screening PSUs by estimated wattage. Price tracking and data collection are planned, but are not implemented yet.
 
