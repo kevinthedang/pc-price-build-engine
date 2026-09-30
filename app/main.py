@@ -44,6 +44,7 @@ def format_build_report(
 	cpu,
 	gpu,
 	storage,
+	memory,
 	motherboards,
 	compatible_psus,
 	cases,
@@ -61,6 +62,10 @@ def format_build_report(
 		f"Socket: {cpu['socket']}",
 		f"TDP: {cpu['tdp']} W",
 		f"Stock cooler included: {'Yes' if cpu['stock_cooler_included'] else 'No'}",
+		"",
+		memory["name"],
+		f"Generation: {memory['memory_type']}",
+		f"Capacity: {memory.get('size_gb', 'N/A')} GB",
 		"",
 		"GPU:",
 		gpu["name"],
@@ -170,7 +175,7 @@ def format_build_report(
 
 
 def main():
-	parser = argparse.ArgumentParser(description="Find compatible motherboards.")
+	parser = argparse.ArgumentParser(description="Create Compatible Computer System.")
 	parser.add_argument(
 		"--cpu-id",
         "--cpu", 
@@ -192,6 +197,13 @@ def main():
 		help="ID of the selected storage device",
 	)
 	parser.add_argument(
+		"--memory-id",
+		"--memory",
+		dest="memory_id",
+		required=True,
+		help="ID of the selected memory module",
+    )
+	parser.add_argument(
 		"--form-factor",
 		help="Optionally filter by motherboard form factor, such as ATX or Micro-ATX",
 	)
@@ -200,6 +212,7 @@ def main():
 	cpus = load_json("cpus.json")
 	gpus = load_json("gpus.json")
 	storage_devices = load_json("storage.json")
+	memory_devices = load_json("memory.json")
 	motherboards = load_json("motherboards.json")
 	cases = load_json("cases.json")
 	coolers = load_json("coolers.json")
@@ -214,23 +227,27 @@ def main():
 		print(f"GPU not found: {arguments.gpu_id}")
 		return 1
 
-	storage = next(
-		(item for item in storage_devices if item["id"] == arguments.storage_id),
-		None,
-	)
+	storage = next((item for item in storage_devices if item["id"] == arguments.storage_id), None)
 	if storage is None:
 		print(f"Storage not found: {arguments.storage_id}")
+		return 1
+
+	memory = next((item for item in memory_devices if item["id"] == arguments.memory_id), None)
+	if memory is None:
+		print(f"Memory not found: {arguments.memory_id}")
 		return 1
 
 	psus = load_json("psus.json")
 	compatible_motherboards = []
 	for motherboard in motherboards:
 		if motherboard["socket"] == cpu["socket"]:
-			if (
-				arguments.form_factor is None
-				or motherboard["form_factor"] == arguments.form_factor
-			):
-				compatible_motherboards.append(motherboard)
+			# Check Memory Generation compatibility (e.g., matching DDR4 or DDR5 constraints)
+			if motherboard["memory_type"] == memory.get("memory_type"):
+				if (
+					arguments.form_factor is None
+					or motherboard["form_factor"] == arguments.form_factor
+				):
+					compatible_motherboards.append(motherboard)
 
 	compatible_cases = [
 		case
@@ -262,6 +279,7 @@ def main():
 			cpu,
 			gpu,
 			storage,
+			memory,
 			compatible_motherboards,
 			compatible_psus,
 			compatible_cases,

@@ -25,14 +25,15 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 From the project root, run:
 
 ```bash
-python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000002 --form-factor ATX
+python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000002 --memory-id memory-000000002 --form-factor ATX
 ```
 
 > [!NOTE]
 > The CPU, GPU, and Storage IDs must exist in `data/cpus.json`, `data/gpus.json`, `data/storage.json`. The selected GPU is required and shown in the results, but motherboard matching still uses the CPU socket and optional form factor. `--gpu` is also accepted as an alias for `--gpu-id`. Same thing with `--cpu` and `--storage` To list all motherboards with a compatible socket, omit `--form-factor`:
 
+Example AM4 DDR4 system with shorter syntax:
 ```bash
-python3 app/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000002
+python3 app/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000002 --memory memory-000000002
 ```
 
 When provided, the form factor must exactly match a value in `data/motherboards.json`, such as `ATX`, `Micro-ATX`, or `Mini-ITX`.
