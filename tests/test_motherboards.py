@@ -19,6 +19,8 @@ class MotherboardCompatibilityTests(unittest.TestCase):
             gpu_id,
             "--storage-id",
             "storage-000000001",
+            "--memory-id",
+            "memory-000000003"
         ]
         if form_factor is not None:
             command.extend(["--form-factor", form_factor])
