@@ -22,6 +22,8 @@ class CoolerCompatibilityTests(unittest.TestCase):
                 form_factor,
                 "--storage-id",
                 "storage-000000001",
+                "--memory-id",
+                "memory-000000007"
             ],
             cwd=PROJECT_ROOT,
             capture_output=True,
