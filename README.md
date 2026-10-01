@@ -1,7 +1,7 @@
 # PC Price Build Engine
 ![Tests Workflow](https://github.com/kevinthedang/pc-price-build-engine/actions/workflows/tests.yml/badge.svg)
 
-A Python project for organizing PC part data, matching motherboards to CPUs, and screening PSUs by estimated wattage. Price tracking and data collection are planned, but are not implemented yet.
+A Python project for organizing PC part data, matching motherboards to CPUs, and screening PSUs by estimated wattage. The build engine also accepts a required storage drive and memory kit so the generated report reflects the actual selected parts.
 
 ## Roadmap
 
@@ -11,8 +11,8 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 
 ## Current Features
 
-- Loads CPU, GPU, storage, motherboard, case, and PSU catalogs from JSON files in `data/`.
-- Finds motherboards matching a selected CPU's socket, optionally filtered by form factor.
+- Loads CPU, GPU, storage, memory, motherboard, case, cooler, and PSU catalogs from JSON files in `data/`.
+- Finds motherboards matching a selected CPU's socket, selected memory type, and optional form factor.
 - Finds cases that support a matching motherboard form factor and the selected GPU's length.
 - Lists PSUs that meet a basic estimated wattage requirement for the selected CPU and GPU.
 - Includes basic command-line integration tests.
@@ -26,15 +26,15 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 From the project root, run:
 
 ```bash
-python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000002 --memory-id memory-000000002 --form-factor ATX
+python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000001 --memory-id memory-000000003 --form-factor ATX
 ```
 
 > [!NOTE]
-> The CPU, GPU, and Storage IDs must exist in `data/cpus.json`, `data/gpus.json`, `data/storage.json`. The selected GPU is required and shown in the results, but motherboard matching still uses the CPU socket and optional form factor. `--gpu` is also accepted as an alias for `--gpu-id`. Same thing with `--cpu` and `--storage` To list all motherboards with a compatible socket, omit `--form-factor`:
+> The CPU, GPU, storage, and memory IDs must exist in `data/cpus.json`, `data/gpus.json`, `data/storage.json`, and `data/memory.json`. The selected GPU is required and displayed in the report, while motherboard compatibility checks also require a matching CPU socket, compatible memory type, and optional form factor. `--cpu`, `--gpu`, `--storage`, and `--memory` are accepted aliases for the corresponding `--*-id` arguments. To list all motherboards that match the CPU and memory type, omit `--form-factor`:
 
 Example AM4 DDR4 system with shorter syntax:
 ```bash
-python3 app/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000002 --memory memory-000000002
+python3 app/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000001 --memory memory-000000003
 ```
 
 When provided, the form factor must exactly match a value in `data/motherboards.json`, such as `ATX`, `Micro-ATX`, or `Mini-ITX`.
@@ -58,6 +58,10 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 - `name`: motherboard model
 - `socket`: motherboard CPU socket
 - `form_factor`: motherboard size, such as `ATX` or `Micro-ATX`
+- `memory_type`: supported memory generation, such as `DDR4` or `DDR5`
+- `memory_slots`: physical DIMM slots available on the board
+- `max_memory_gb`: total supported system memory in GB
+- `wifi`: whether the board includes integrated Wi-Fi
 
 `data/storage.json` contains storage records with these fields:
 
@@ -65,7 +69,16 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 - `name`: storage name
 - `type`: storage type (`SATA SSD`, `NVMe SSD`, `SATA HDD`, etc.)
 - `size_gb`: amount of gigabytes of storage
-- `pcie_compatibility`: PCIe compatible generation
+- `pcie_compatibility`: list of PCIe compatibility strings, such as `PCIe 4.0 x4`
+
+`data/memory.json` contains memory records with these fields:
+
+- `id`: unique memory identifier
+- `name`: memory kit name
+- `memory_type`: memory generation, such as `DDR4` or `DDR5`
+- `capacity_gb`: amount of gigabytes per module
+- `modules`: number of modules in the kit
+- `speed_mhz`: rated memory speed in MHz
 
 `data/gpus.json` contains GPU records with these fields:
 
