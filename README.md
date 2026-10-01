@@ -15,6 +15,8 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 - Finds motherboards matching a selected CPU's socket, selected memory type, and optional form factor.
 - Finds cases that support a matching motherboard form factor and the selected GPU's length.
 - Lists PSUs that meet a basic estimated wattage requirement for the selected CPU and GPU.
+- Reports selected parts and an estimated cost breakdown using the lowest matching offer for each priced component.
+- Accepts and displays `cheapest`, `budget`, `balanced`, `premium`, and `top_of_line` pricing modes, plus an optional `--budget-limit`; these options do not currently rerank complete builds.
 - Includes basic command-line integration tests.
 
 ## Requirements
@@ -93,6 +95,7 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 
 `data/cases.json` contains case records with these fields:
 
+- `id`: unique case identifier, also used as `product_id` by case offers in `data/offers.json`
 - `name`: case model
 - `supported_motherboard_form_factors`: list of motherboard form factors supported by the case
 - `max_gpu_length_mm`: maximum GPU length in millimeters
@@ -124,6 +127,8 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 - `name`: PSU model and revision
 - `wattage`: rated output in watts, as an integer
 - `efficiency`: efficiency class, such as `Bronze`, `Gold`, or `Platinum`
+
+`data/offers.json` contains retailer offers for components. Each offer identifies a component using `component_type` and `product_id`; the product ID must match the component's `id` in its catalog. Offers include retailer, price, shipping, currency, availability, condition, seller, and the time the offer was checked. The report uses the lowest price-plus-shipping offer when available; components without a matching offer contribute `$0.00` to the estimate. Prices are estimates and may be stale.
 
 GPU dimensions and case clearances are based on manufacturer specifications: [Gigabyte RTX 4060](https://www.gigabyte.com/Graphics-Card/GV-N4060WF2OC-8GD/sp), [RTX 4070 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N407SWF3OC-12GD-rev-10/sp), [RTX 4080 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N408SGAMING-OC-16GD/sp), [RTX 4090](https://www.gigabyte.com/Graphics-Card/GV-N4090WF3V2-24GD-rev-10-11/sp), [SAPPHIRE RX 7600](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7600-8g-gddr6), [RX 7800 XT](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7800-xt-16g-gddr6), [RX 7900 XTX](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7900-xtx-24g-gddr6), [Corsair 4000D Airflow](https://www.corsair.com/us/en/p/pc-cases/cc-9011200-ww/4000d-airflow-tempered-glass-mid-tower-atx-case-black-cc-9011200-ww), [Cooler Master NR200P](https://www.coolermaster.com/en-global/products/masterbox-nr200p/), [Lian Li A3-mATX](https://lian-li.com/product/a3-matx/), and [Fractal Design Pop Mini Air](https://www.fractal-design.com/products/cases/pop-series/pop-mini-air/pop-mini-air-rgb-black-tg-clear-tint/).
 

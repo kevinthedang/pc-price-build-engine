@@ -12,6 +12,42 @@ def load_json(filename):
 		return json.load(data_file)
 
 
+def load_offers():
+	try:
+		return load_json("offers.json")
+	except FileNotFoundError:
+		return []
+
+
+def best_offer_for_product(offers, component_type, product_id):
+	matching_offers = [
+		offer
+		for offer in offers
+		if offer.get("component_type") == component_type
+		and offer.get("product_id") == product_id
+	]
+	if not matching_offers:
+		return None
+	return min(
+		matching_offers,
+		key=lambda offer: (
+			float(offer.get("price", 0.0)) + float(offer.get("shipping", 0.0)),
+			offer.get("retailer", ""),
+		),
+	)
+
+
+def offer_total(offers, component_type, product_id):
+	offer = best_offer_for_product(offers, component_type, product_id)
+	if offer is None:
+		return 0.0
+	return float(offer.get("price", 0.0)) + float(offer.get("shipping", 0.0))
+
+
+def offer_total_for_component(component_type, product_id, offers):
+	return offer_total(offers, component_type, product_id)
+
+
 def cooler_fits_case(cooler, cpu, case):
 	if cpu["socket"] not in cooler["supported_sockets"]:
 		return False
@@ -50,12 +86,25 @@ def format_build_report(
 	cases,
 	coolers_by_case,
 	minimum_psu_wattage,
+	offers,
+	pricing_mode="cheapest",
+	budget_limit=None,
+	estimated_total_build_cost=0.0,
+	selected_motherboard=None,
+	selected_case=None,
+	selected_psu=None,
 ):
 	separator = "================================="
 	lines = [
 		separator,
 		"Generated Build",
 		separator,
+		"",
+		"Selected Parts:",
+		f"CPU: {cpu['name']}",
+		f"GPU: {gpu['name']}",
+		f"Storage: {storage['name']}",
+		f"Memory: {memory['name']}",
 		"",
 		"CPU:",
 		cpu["name"],
@@ -170,6 +219,27 @@ def format_build_report(
 	lines.extend(
 		[
 			"",
+			"Pricing:",
+			f"Pricing mode: {pricing_mode}",
+		]
+	)
+	if budget_limit is not None:
+		lines.append(f"Budget limit: ${budget_limit:,.2f} USD")
+	lines.append(f"Estimated total build cost: ${estimated_total_build_cost:,.2f} USD")
+	lines.append("Cost breakdown:")
+	lines.append(f"- CPU: ${offer_total_for_component('cpu', cpu['id'], offers):,.2f} USD")
+	lines.append(f"- GPU: ${offer_total_for_component('gpu', gpu['id'], offers):,.2f} USD")
+	lines.append(f"- Storage: ${offer_total_for_component('storage', storage['id'], offers):,.2f} USD")
+	lines.append(f"- Memory: ${offer_total_for_component('memory', memory['id'], offers):,.2f} USD")
+	if selected_motherboard is not None:
+		lines.append(f"- Motherboard: ${offer_total_for_component('motherboard', selected_motherboard['id'], offers):,.2f} USD")
+	if selected_case is not None:
+		lines.append(f"- Case: ${offer_total_for_component('case', selected_case.get('id', selected_case['name']), offers):,.2f} USD")
+	if selected_psu is not None:
+		lines.append(f"- PSU: ${offer_total_for_component('psu', selected_psu['id'], offers):,.2f} USD")
+	lines.extend(
+		[
+			"",
 			"Compatibility:",
 			"PASS" if compatible else "FAIL",
 			separator,
@@ -212,6 +282,17 @@ def main():
 		"--form-factor",
 		help="Optionally filter by motherboard form factor, such as ATX or Micro-ATX",
 	)
+	parser.add_argument(
+		"--pricing-mode",
+		choices=["cheapest", "budget", "balanced", "premium", "top_of_line"],
+		default="cheapest",
+		help="How to rank candidate build options for pricing-aware recommendations.",
+	)
+	parser.add_argument(
+		"--budget-limit",
+		type=float,
+		help="Optional maximum total spend for budget mode in USD.",
+	)
 	arguments = parser.parse_args()
 
 	cpus = load_json("cpus.json")
@@ -221,6 +302,7 @@ def main():
 	coolers = load_json("coolers.json")
 	storages = load_json("storage.json")
 	memory_modules = load_json("memory.json")
+	offers = load_offers()
 
 	cpu = next((item for item in cpus if item["id"] == arguments.cpu_id), None)
 	if cpu is None:
@@ -282,6 +364,50 @@ def main():
 	compatible_psus = [
 		psu for psu in psus if psu["wattage"] >= minimum_psu_wattage
 	]
+
+	selected_parts = {
+		"cpu": cpu,
+		"gpu": gpu,
+		"storage": storage,
+		"memory": memory,
+	}
+	selected_part_total = sum(
+		offer_total(offers, component_type, part["id"])
+		for component_type, part in selected_parts.items()
+	)
+	selected_motherboard = None
+	selected_case = None
+	selected_psu = None
+	if compatible_motherboards:
+		selected_motherboard = min(
+			compatible_motherboards,
+			key=lambda motherboard: offer_total(offers, "motherboard", motherboard["id"]),
+		)
+		selected_part_total += offer_total(
+			offers,
+			"motherboard",
+			selected_motherboard["id"],
+		)
+	if compatible_cases:
+		selected_case = min(
+			compatible_cases,
+			key=lambda case: offer_total(offers, "case", case.get("id", case["name"])),
+		)
+		selected_part_total += offer_total(
+			offers,
+			"case",
+			selected_case.get("id", selected_case["name"]),
+		)
+	if compatible_psus:
+		selected_psu = min(compatible_psus, key=lambda psu: psu["wattage"])
+		selected_part_total += offer_total(offers, "psu", selected_psu["id"])
+
+	pricing_mode = arguments.pricing_mode
+	budget_limit = arguments.budget_limit
+	if pricing_mode == "budget" and budget_limit is not None:
+		budget_status = "within budget" if selected_part_total <= budget_limit else "over budget"
+	else:
+		budget_status = "n/a"
 	print(
 		format_build_report(
 			cpu,
@@ -293,6 +419,13 @@ def main():
 			compatible_cases,
 			coolers_by_case,
 			minimum_psu_wattage,
+			offers,
+			pricing_mode=pricing_mode,
+			budget_limit=budget_limit,
+			estimated_total_build_cost=selected_part_total,
+			selected_motherboard=selected_motherboard,
+			selected_case=selected_case,
+			selected_psu=selected_psu,
 		)
 	)
 	return 0
