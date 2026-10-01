@@ -67,6 +67,8 @@ npm run dev -- --open
 
 Vite prints the local URL, usually `http://localhost:5173`. Keep the API server running in its own terminal. The frontend is not yet connected to the API.
 
+For Cloudflare Pages, set the project root directory to `frontend` and set the `NODE_VERSION` environment variable to `24.21.0` for production and preview builds. The `frontend/.nvmrc` file pins that Node.js version for local Node version managers.
+
 ## Usage
 
 From the project root, run:
