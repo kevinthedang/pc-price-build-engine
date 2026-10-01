@@ -26,13 +26,46 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 
 ## Project Structure
 
-- `backend/`: current Python build engine and CLI; this is the future home for the web API.
-- `frontend/`: reserved for the web client; no framework has been selected.
+- `backend/`: Python build engine, CLI, and FastAPI health endpoint.
+- `frontend/`: SvelteKit web client.
 - `database/core/`: shared product, retailer, offer, and compatibility relationship tables.
 - `database/specs/`: component-specific specification tables; apply SQL files from both folders in numeric filename order.
 - `data/`: current JSON catalogs, retained as seed/import sources. The CLI still reads these files; database loading and runtime queries have not been implemented yet.
 
 Local SQLite database files are generated artifacts and should not be committed.
+
+## Run the API
+
+From the project root, create and activate a virtual environment, then install the backend dependencies:
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+On Debian or Ubuntu, if virtual environment creation reports that `ensurepip` is unavailable, install the venv package matching your Python version (for example, `sudo apt install python3.12-venv`) and retry.
+
+Start the development server from the `backend/` directory:
+
+```bash
+python -m uvicorn api:app --reload
+```
+
+The health endpoint is available at `http://127.0.0.1:8000/api/health` and the interactive API documentation at `http://127.0.0.1:8000/docs`.
+
+## Run the Frontend
+
+In a separate terminal, install the frontend dependencies and start the SvelteKit development server:
+
+```bash
+cd frontend
+npm ci
+npm run dev -- --open
+```
+
+Vite prints the local URL, usually `http://localhost:5173`. Keep the API server running in its own terminal. The frontend is not yet connected to the API.
 
 ## Usage
 
