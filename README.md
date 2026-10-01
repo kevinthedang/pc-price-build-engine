@@ -11,7 +11,7 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 
 ## Current Features
 
-- Loads CPU, GPU, storage, memory, motherboard, case, cooler, and PSU catalogs from JSON files in `data/`.
+- Loads CPU, GPU, storage, memory, motherboard, case, cooler, and PSU catalogs from JSON seed files in `data/`.
 - Finds motherboards matching a selected CPU's socket, selected memory type, and optional form factor.
 - Finds cases that support a matching motherboard form factor and the selected GPU's length.
 - Lists PSUs that meet a basic estimated wattage requirement for the selected CPU and GPU.
@@ -22,13 +22,24 @@ A Python project for organizing PC part data, matching motherboards to CPUs, and
 ## Requirements
 
 - Python 3
+- SQLite (included with Python)
+
+## Project Structure
+
+- `backend/`: current Python build engine and CLI; this is the future home for the web API.
+- `frontend/`: reserved for the web client; no framework has been selected.
+- `database/core/`: shared product, retailer, offer, and compatibility relationship tables.
+- `database/specs/`: component-specific specification tables; apply SQL files from both folders in numeric filename order.
+- `data/`: current JSON catalogs, retained as seed/import sources. The CLI still reads these files; database loading and runtime queries have not been implemented yet.
+
+Local SQLite database files are generated artifacts and should not be committed.
 
 ## Usage
 
 From the project root, run:
 
 ```bash
-python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000001 --memory-id memory-000000003 --form-factor ATX
+python3 backend/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id storage-000000001 --memory-id memory-000000003 --form-factor ATX
 ```
 
 > [!NOTE]
@@ -36,7 +47,7 @@ python3 app/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-id s
 
 Example AM4 DDR4 system with shorter syntax:
 ```bash
-python3 app/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000001 --memory memory-000000003
+python3 backend/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000001 --memory memory-000000003
 ```
 
 When provided, the form factor must exactly match a value in `data/motherboards.json`, such as `ATX`, `Micro-ATX`, or `Mini-ITX`.
@@ -109,6 +120,7 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 
 `data/coolers.json` contains cooler records with these fields:
 
+- `id`: unique cooler identifier
 - `name`: cooler model
 - `type`: `air` or `aio`
 - `supported_sockets`: CPU sockets supported by the cooler
@@ -129,6 +141,8 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 - `efficiency`: efficiency class, such as `Bronze`, `Gold`, or `Platinum`
 
 `data/offers.json` contains retailer offers for components. Each offer identifies a component using `component_type` and `product_id`; the product ID must match the component's `id` in its catalog. Offers include retailer, price, shipping, currency, availability, condition, seller, and the time the offer was checked. The report uses the lowest price-plus-shipping offer when available; components without a matching offer contribute `$0.00` to the estimate. Prices are estimates and may be stale.
+
+The SQLite schema is normalized: each JSON component's `id` and `name` are stored once in `products`, while component-specific fields are stored in the corresponding specs table using `product_id`. For example, a PSU's `id` and `name` go into `products`, and its `wattage` and `efficiency` go into `psu_specs`. Offers reference the shared product row. Offer prices and shipping are stored as integer cents. Apply SQL files from both `database/core/` and `database/specs/` in numeric filename order, and enable SQLite foreign-key enforcement on each connection. The schema tests validate the DDL and ensure each source catalog has product IDs and names.
 
 GPU dimensions and case clearances are based on manufacturer specifications: [Gigabyte RTX 4060](https://www.gigabyte.com/Graphics-Card/GV-N4060WF2OC-8GD/sp), [RTX 4070 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N407SWF3OC-12GD-rev-10/sp), [RTX 4080 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N408SGAMING-OC-16GD/sp), [RTX 4090](https://www.gigabyte.com/Graphics-Card/GV-N4090WF3V2-24GD-rev-10-11/sp), [SAPPHIRE RX 7600](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7600-8g-gddr6), [RX 7800 XT](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7800-xt-16g-gddr6), [RX 7900 XTX](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7900-xtx-24g-gddr6), [Corsair 4000D Airflow](https://www.corsair.com/us/en/p/pc-cases/cc-9011200-ww/4000d-airflow-tempered-glass-mid-tower-atx-case-black-cc-9011200-ww), [Cooler Master NR200P](https://www.coolermaster.com/en-global/products/masterbox-nr200p/), [Lian Li A3-mATX](https://lian-li.com/product/a3-matx/), and [Fractal Design Pop Mini Air](https://www.fractal-design.com/products/cases/pop-series/pop-mini-air/pop-mini-air-rgb-black-tg-clear-tint/).
 
