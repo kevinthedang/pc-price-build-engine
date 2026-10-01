@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     let selectedCpu = $state("")
     let selectedGpu = $state("")
     let selectedStorage = $state("")
@@ -7,9 +7,74 @@
     let selectedMode = $state("")
     let selectedBudget = $state("")
     let selectedCurrency = $state("USD")
+    type ApiStatus = "unknown" | "checking" | "online" | "offline"
+    let apiStatus = $state<ApiStatus>("unknown")
+
+    async function checkApiHealth() {
+        apiStatus = "checking"
+
+        try {
+            const response = await fetch("/api/health")
+            if (!response.ok) {
+                throw new Error("Health check failed")
+            }
+
+            const result: { status?: string } = await response.json()
+            apiStatus = result.status === "ok" ? "online" : "offline"
+        } catch {
+            apiStatus = "offline"
+        }
+    }
 </script>
 
 <style>
+    .page-header {
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem 1.5rem;
+    }
+
+    .health-control {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .health-dot {
+        display: inline-block;
+        width: 0.625rem;
+        height: 0.625rem;
+        border-radius: 50%;
+        background: #777;
+    }
+
+    .health-dot.online {
+        background: #178344;
+    }
+
+    .health-dot.checking {
+        background: #b87500;
+    }
+
+    .health-dot.offline {
+        background: #b42318;
+    }
+
+    .health-button {
+        padding: 0.55rem 0.8rem;
+        border: 1px solid #777;
+        border-radius: 0.375rem;
+        background: white;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    .health-button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+    }
+
     .builder {
         max-width: 44rem;
         margin: 0 auto;
@@ -45,6 +110,24 @@
         width: auto;
     }
 </style>
+
+<header class="page-header">
+    <div class="health-control">
+        <span class="health-dot {apiStatus}" aria-hidden="true"></span>
+        <span aria-live="polite">
+            {apiStatus === "unknown" ? "API not checked" :
+                apiStatus === "checking" ? "Checking API" :
+                apiStatus === "online" ? "API online" : "API unavailable"}
+        </span>
+        <button
+            class="health-button"
+            onclick={checkApiHealth}
+            disabled={apiStatus === "checking"}
+        >
+            {apiStatus === "checking" ? "Checking..." : "Check API"}
+        </button>
+    </div>
+</header>
 
 <main class="builder">
     <h1>PC Building Optimizer</h1>
