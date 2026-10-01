@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { onMount } from "svelte"
+
     let selectedCpu = $state("")
     let selectedGpu = $state("")
     let selectedStorage = $state("")
@@ -9,9 +11,15 @@
     let selectedCurrency = $state("USD")
     type ApiStatus = "unknown" | "checking" | "online" | "offline"
     let apiStatus = $state<ApiStatus>("unknown")
+    let healthCheckInProgress = false
 
     async function checkApiHealth() {
-        apiStatus = "checking"
+        if (healthCheckInProgress) return
+        healthCheckInProgress = true
+
+        if (apiStatus === "unknown") {
+            apiStatus = "checking"
+        }
 
         try {
             const response = await fetch("/api/health")
@@ -23,8 +31,28 @@
             apiStatus = result.status === "ok" ? "online" : "offline"
         } catch {
             apiStatus = "offline"
+        } finally {
+            healthCheckInProgress = false
         }
     }
+
+    onMount(() => {
+        void checkApiHealth()
+
+        const checkWhenVisible = () => {
+            if (document.visibilityState === "visible") {
+                void checkApiHealth()
+            }
+        }
+
+        const intervalId = window.setInterval(checkWhenVisible, 30_000)
+        document.addEventListener("visibilitychange", checkWhenVisible)
+
+        return () => {
+            window.clearInterval(intervalId)
+            document.removeEventListener("visibilitychange", checkWhenVisible)
+        }
+    })
 </script>
 
 <style>
@@ -58,21 +86,6 @@
 
     .health-dot.offline {
         background: #b42318;
-    }
-
-    .health-button {
-        padding: 0.55rem 0.8rem;
-        border: 1px solid #777;
-        border-radius: 0.375rem;
-        background: white;
-        color: inherit;
-        font: inherit;
-        cursor: pointer;
-    }
-
-    .health-button:disabled {
-        cursor: wait;
-        opacity: 0.7;
     }
 
     .builder {
@@ -115,17 +128,9 @@
     <div class="health-control">
         <span class="health-dot {apiStatus}" aria-hidden="true"></span>
         <span aria-live="polite">
-            {apiStatus === "unknown" ? "API not checked" :
-                apiStatus === "checking" ? "Checking API" :
-                apiStatus === "online" ? "API online" : "API unavailable"}
+            {apiStatus === "online" ? "Online" :
+                apiStatus === "offline" ? "Offline" : "Checking..."}
         </span>
-        <button
-            class="health-button"
-            onclick={checkApiHealth}
-            disabled={apiStatus === "checking"}
-        >
-            {apiStatus === "checking" ? "Checking..." : "Check API"}
-        </button>
     </div>
 </header>
 
@@ -192,9 +197,3 @@
         </div>
     </label>
 </main>
-
-
-
-{#if selectedCpu}
-    <p>Selected CPU: {selectedCpu}</p>
-{/if}
