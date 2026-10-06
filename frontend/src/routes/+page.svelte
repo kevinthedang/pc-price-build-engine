@@ -219,6 +219,11 @@
 <main class="builder">
 	<h1>PC Building Optimizer</h1>
 	<p>Choose your core components to generate a compatible build.</p>
+	<aside class="disclaimer" aria-label="Development disclaimer">
+		<strong>Experimental — under active development.</strong>
+		Compatibility checks and price estimates may be incomplete or inaccurate. Verify component
+		compatibility and current prices before purchasing.
+	</aside>
 
 	{#if catalogError}
 		<p class="error" role="alert">Unable to load component catalogs: {catalogError}</p>
@@ -410,6 +415,21 @@
 		max-width: 48rem;
 		margin: 0 auto;
 		padding: 2rem;
+	}
+
+	.disclaimer {
+		margin-block: 1.5rem;
+		padding: 0.875rem 1rem;
+		border: 1px solid #e5c778;
+		border-radius: 0.375rem;
+		background: #fff8e5;
+		color: #624900;
+		line-height: 1.5;
+	}
+
+	.disclaimer strong {
+		display: block;
+		margin-bottom: 0.25rem;
 	}
 
 	.builder label {
