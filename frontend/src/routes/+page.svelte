@@ -12,6 +12,11 @@
 		form_factor?: string;
 	}
 
+	interface MemoryCatalogItem extends CatalogItem {
+		capacity_gb: number;
+		modules: number;
+	}
+
 	interface BuildResult {
 		compatible: boolean;
 		compatibility_checks: CompatibilityCheck[];
@@ -60,7 +65,7 @@
 	let cpus = $state<CatalogItem[]>([]);
 	let gpus = $state<CatalogItem[]>([]);
 	let storages = $state<CatalogItem[]>([]);
-	let memoryOptions = $state<CompatibilityOption<CatalogItem>[]>([]);
+	let memoryOptions = $state<CompatibilityOption<MemoryCatalogItem>[]>([]);
 	let formFactorOptions = $state<FormFactorOption[]>([]);
 	let selectedCpu = $state('');
 	let selectedGpu = $state('');
@@ -88,6 +93,15 @@
 				option.value === selectedFormFactor
 		)
 	);
+
+	function memoryDisplayName(memory: MemoryCatalogItem): string {
+		const totalCapacity = memory.capacity_gb * memory.modules;
+		const totalCapacityLabel = `${totalCapacity}GB total`;
+		const displayName = memory.name.replace(/\b\d+\s*GB\b/i, totalCapacityLabel);
+		return displayName === memory.name
+			? `${memory.name} — ${totalCapacityLabel}`
+			: displayName;
+	}
 
 	async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 		const response = await fetch(`${apiBaseUrl}${url}`, init);
@@ -125,7 +139,7 @@
 		if (selectedMemory) query.set('memory_id', selectedMemory);
 		try {
 			const options = await fetchJson<{
-				memory: CompatibilityOption<CatalogItem>[];
+				memory: CompatibilityOption<MemoryCatalogItem>[];
 				form_factors: FormFactorOption[];
 			}>(`/api/builds/options?${query.toString()}`);
 			if (requestId !== optionsRequestId) return;
@@ -259,7 +273,7 @@
 				<option value="">Choose a memory kit</option>
 				{#each visibleMemoryOptions as option (option.item.id)}
 					<option value={option.item.id}>
-						{option.item.name}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
+						{memoryDisplayName(option.item)}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
 					</option>
 				{/each}
 			</select>
