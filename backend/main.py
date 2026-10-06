@@ -60,6 +60,130 @@ def cooler_fits_case(cooler, cpu, case):
 	return False
 
 
+def get_build_options(cpu_id=None, form_factor=None, memory_id=None):
+	cpus = load_json("cpus.json")
+	motherboards = load_json("motherboards.json")
+	memory_modules = load_json("memory.json")
+	cpu = next((item for item in cpus if item["id"] == cpu_id), None)
+	if cpu_id is not None and cpu is None:
+		raise ValueError(f"CPU not found: {cpu_id}")
+	selected_memory = next(
+		(item for item in memory_modules if item["id"] == memory_id), None
+	)
+	if memory_id is not None and selected_memory is None:
+		raise ValueError(f"Memory not found: {memory_id}")
+
+	if cpu is None:
+		memory_options = [
+			{
+				"item": memory,
+				"compatible": None,
+				"reasons": ["Choose a CPU to check memory compatibility."],
+			}
+			for memory in memory_modules
+		]
+	else:
+		candidate_boards = [
+			motherboard
+			for motherboard in motherboards
+			if motherboard["socket"] == cpu["socket"]
+			and (
+				form_factor is None
+				or motherboard["form_factor"] == form_factor
+			)
+		]
+		memory_options = []
+		for memory in memory_modules:
+			type_boards = [
+				motherboard
+				for motherboard in candidate_boards
+				if motherboard["memory_type"] == memory["memory_type"]
+			]
+			fitting_boards = [
+				motherboard
+				for motherboard in type_boards
+				if memory["capacity_gb"] * memory["modules"]
+				<= motherboard["max_memory_gb"]
+			]
+			reasons = []
+			if not candidate_boards:
+				location = f" with {form_factor} form factor" if form_factor else ""
+				reasons.append(
+					f"No motherboard for {cpu['socket']}{location} is listed."
+				)
+			elif not type_boards:
+				reasons.append(
+					f"No motherboard for this CPU supports {memory['memory_type']} memory."
+				)
+			elif not fitting_boards:
+				maximum_capacity = max(
+					board["max_memory_gb"] for board in type_boards
+				)
+				kit_capacity = memory["capacity_gb"] * memory["modules"]
+				reasons.append(
+					f"This {kit_capacity} GB kit exceeds the {maximum_capacity} GB "
+					"maximum on matching motherboards."
+				)
+			memory_options.append(
+				{
+					"item": memory,
+					"compatible": bool(fitting_boards),
+					"reasons": reasons,
+				}
+			)
+
+	form_factors = sorted(
+		{motherboard["form_factor"] for motherboard in motherboards}
+	)
+	form_factor_options = []
+	for candidate_form_factor in form_factors:
+		if cpu is None:
+			compatible = None
+			reasons = ["Choose a CPU to check motherboard form-factor compatibility."]
+		else:
+			compatible = any(
+				motherboard["socket"] == cpu["socket"]
+				and motherboard["form_factor"] == candidate_form_factor
+				and (
+					selected_memory is None
+					or (
+						motherboard["memory_type"]
+						== selected_memory["memory_type"]
+						and selected_memory["capacity_gb"]
+						* selected_memory["modules"]
+						<= motherboard["max_memory_gb"]
+					)
+				)
+				for motherboard in motherboards
+			)
+			reasons = (
+				[]
+				if compatible
+				else [
+					f"No {candidate_form_factor} motherboard for the "
+					f"{cpu['socket']} socket"
+					+ (
+						f" supports the selected {selected_memory['memory_type']} "
+						f"{selected_memory['capacity_gb'] * selected_memory['modules']} GB kit."
+						if selected_memory
+						else " is listed."
+					)
+				]
+			)
+		form_factor_options.append(
+			{
+				"value": candidate_form_factor,
+				"compatible": compatible,
+				"reasons": reasons,
+			}
+		)
+
+	return {
+		"memory": memory_options,
+		"form_factors": form_factor_options,
+	}
+
+
 def format_cooler_details(cooler):
 	if cooler["type"] == "air":
 		fit_details = f"air, {cooler['height_mm']} mm tall"
@@ -283,19 +407,27 @@ def generate_build(
 		raise ValueError(f"Memory not found: {memory_id}")
 
 	psus = load_json("psus.json")
-	compatible_motherboards = []
-	for motherboard in motherboards:
-		if motherboard["socket"] != cpu["socket"]:
-			continue
-		if motherboard["memory_type"] != memory["memory_type"]:
-			continue
-		if memory["capacity_gb"] * memory["modules"] > motherboard["max_memory_gb"]:
-			continue
-		if (
-			form_factor is None
-			or motherboard["form_factor"] == form_factor
-		):
-			compatible_motherboards.append(motherboard)
+	socket_motherboards = [
+		motherboard
+		for motherboard in motherboards
+		if motherboard["socket"] == cpu["socket"]
+	]
+	type_motherboards = [
+		motherboard
+		for motherboard in socket_motherboards
+		if motherboard["memory_type"] == memory["memory_type"]
+	]
+	capacity_motherboards = [
+		motherboard
+		for motherboard in type_motherboards
+		if memory["capacity_gb"] * memory["modules"]
+		<= motherboard["max_memory_gb"]
+	]
+	compatible_motherboards = [
+		motherboard
+		for motherboard in capacity_motherboards
+		if form_factor is None or motherboard["form_factor"] == form_factor
+	]
 
 	compatible_cases = [
 		case
@@ -383,16 +515,190 @@ def generate_build(
 		for component_type, part in selected_parts.items()
 		if part is not None
 	}
-	compatible = bool(
-		compatible_motherboards
-		and compatible_psus
-		and compatible_cases
-		and storage
-		and memory
-		and (
-			cpu["stock_cooler_included"]
-			or any(coolers_by_case[case["name"]] for case in compatible_cases)
+	compatibility_checks = [
+		{
+			"code": "cpu_motherboard_socket",
+			"components": ["cpu", "motherboard"],
+			"status": "pass" if socket_motherboards else "fail",
+			"message": (
+				f"At least one listed motherboard supports the {cpu['socket']} socket."
+				if socket_motherboards
+				else f"No listed motherboard supports the {cpu['socket']} CPU socket."
+			),
+		},
+	]
+	if socket_motherboards:
+		compatibility_checks.append(
+			{
+				"code": "memory_motherboard_type",
+				"components": ["memory", "motherboard"],
+				"status": "pass" if type_motherboards else "fail",
+				"message": (
+					f"At least one {cpu['socket']} motherboard supports "
+					f"{memory['memory_type']} memory."
+					if type_motherboards
+					else f"No motherboard for the {cpu['socket']} socket supports "
+					f"{memory['memory_type']} memory."
+				),
+			}
 		)
+	else:
+		compatibility_checks.append(
+			{
+				"code": "memory_motherboard_type",
+				"components": ["memory", "motherboard"],
+				"status": "blocked",
+				"message": "Memory compatibility cannot be checked until a matching motherboard is available.",
+			}
+		)
+	if type_motherboards:
+		maximum_memory_gb = max(
+			motherboard["max_memory_gb"] for motherboard in type_motherboards
+		)
+		kit_capacity_gb = memory["capacity_gb"] * memory["modules"]
+		compatibility_checks.append(
+			{
+				"code": "memory_motherboard_capacity",
+				"components": ["memory", "motherboard"],
+				"status": "pass" if capacity_motherboards else "fail",
+				"message": (
+					f"The {kit_capacity_gb} GB kit fits at least one matching motherboard."
+					if capacity_motherboards
+					else f"The {kit_capacity_gb} GB kit exceeds the "
+					f"{maximum_memory_gb} GB maximum of matching motherboards."
+				),
+			}
+		)
+	else:
+		compatibility_checks.append(
+			{
+				"code": "memory_motherboard_capacity",
+				"components": ["memory", "motherboard"],
+				"status": "blocked",
+				"message": "Memory capacity cannot be checked because no motherboard supports this memory type.",
+			}
+		)
+	if form_factor is None:
+		compatibility_checks.append(
+			{
+				"code": "motherboard_form_factor",
+				"components": ["motherboard"],
+				"status": "pass",
+				"message": "No specific motherboard form factor was requested.",
+			}
+		)
+	elif capacity_motherboards:
+		compatibility_checks.append(
+			{
+				"code": "motherboard_form_factor",
+				"components": ["motherboard"],
+				"status": "pass" if compatible_motherboards else "fail",
+				"message": (
+					f"A compatible {form_factor} motherboard is available."
+					if compatible_motherboards
+					else f"No motherboard matching the selected CPU and memory is "
+					f"available in {form_factor} form factor."
+				),
+			}
+		)
+	else:
+		compatibility_checks.append(
+			{
+				"code": "motherboard_form_factor",
+				"components": ["motherboard"],
+				"status": "blocked",
+				"message": "Form-factor compatibility cannot be checked until the CPU and memory have a matching motherboard.",
+			}
+		)
+
+	if compatible_motherboards:
+		if compatible_cases:
+			case_status = "pass"
+			case_message = "At least one case supports the motherboard form factor and GPU length."
+		else:
+			supported_cases = [
+				case
+				for case in cases
+				if any(
+					motherboard["form_factor"]
+					in case["supported_motherboard_form_factors"]
+					for motherboard in compatible_motherboards
+				)
+			]
+			if supported_cases:
+				maximum_gpu_length = max(
+					case["max_gpu_length_mm"] for case in supported_cases
+				)
+				case_status = "fail"
+				case_message = (
+					f"The {gpu['length_mm']} mm GPU is too long for cases supporting "
+					f"the selected motherboard; the maximum listed clearance is "
+					f"{maximum_gpu_length} mm."
+				)
+			else:
+				case_status = "fail"
+				case_message = (
+					"No listed case supports the selected motherboard form factor."
+				)
+	else:
+		case_status = "blocked"
+		case_message = "Case fit cannot be checked until a compatible motherboard is available."
+	compatibility_checks.append(
+		{
+			"code": "gpu_case_fit",
+			"components": ["gpu", "case"],
+			"status": case_status,
+			"message": case_message,
+		}
+	)
+
+	maximum_psu_wattage = max((psu["wattage"] for psu in psus), default=0)
+	compatibility_checks.append(
+		{
+			"code": "system_psu_wattage",
+			"components": ["cpu", "gpu", "psu"],
+			"status": "pass" if compatible_psus else "fail",
+			"message": (
+				f"A listed PSU meets the estimated {minimum_psu_wattage} W minimum."
+				if compatible_psus
+				else f"No listed PSU meets the estimated {minimum_psu_wattage} W "
+				f"minimum (largest listed PSU: {maximum_psu_wattage} W)."
+			),
+		}
+	)
+	if cpu["stock_cooler_included"]:
+		cooler_status = "pass"
+		cooler_message = "The CPU includes a stock cooler."
+	elif not compatible_cases:
+		cooler_status = "blocked"
+		cooler_message = "Cooler fit cannot be checked until a compatible case is available."
+	elif any(coolers_by_case[case["name"]] for case in compatible_cases):
+		cooler_status = "pass"
+		cooler_message = "At least one listed cooler fits a compatible case and supports the CPU."
+	else:
+		cooler_status = "fail"
+		cooler_message = "No listed cooler fits the compatible cases and supports the CPU."
+	compatibility_checks.append(
+		{
+			"code": "cpu_cooler_fit",
+			"components": ["cpu", "cooler", "case"],
+			"status": cooler_status,
+			"message": cooler_message,
+		}
+	)
+	compatibility_checks.append(
+		{
+			"code": "storage_motherboard_interface",
+			"components": ["storage", "motherboard"],
+			"status": "unknown",
+			"message": (
+				"Storage interface compatibility is not verified because storage "
+				"interface and motherboard slot specifications are not yet modeled."
+			),
+		}
+	)
+	compatible = not any(
+		check["status"] == "fail" for check in compatibility_checks
 	)
 	report = format_build_report(
 		cpu,
@@ -425,6 +731,7 @@ def generate_build(
 		},
 		"minimum_psu_wattage": minimum_psu_wattage,
 		"compatible": compatible,
+		"compatibility_checks": compatibility_checks,
 		"pricing": {
 			"mode": pricing_mode,
 			"budget_limit_cents": budget_limit_cents,

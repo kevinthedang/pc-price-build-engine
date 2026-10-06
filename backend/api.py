@@ -6,9 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 if __package__:
-    from .main import generate_build, load_json
+    from .main import generate_build, get_build_options, load_json
 else:
-    from main import generate_build, load_json
+    from main import generate_build, get_build_options, load_json
 
 
 CATALOG_FILES = {
@@ -81,6 +81,22 @@ def get_catalog(catalog_name: str):
             },
         )
     return load_json(filename)
+
+
+@app.get("/api/builds/options")
+def get_compatible_build_options(
+    cpu_id: str | None = None,
+    form_factor: str | None = None,
+    memory_id: str | None = None,
+):
+    try:
+        return get_build_options(
+            cpu_id=cpu_id,
+            form_factor=form_factor,
+            memory_id=memory_id,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @app.post("/api/builds/generate")

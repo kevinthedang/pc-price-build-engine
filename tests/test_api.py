@@ -83,6 +83,48 @@ class BuildApiTests(unittest.TestCase):
         self.assertEqual(invalid_mode.status_code, 422)
         self.assertEqual(negative_budget.status_code, 422)
 
+    def test_options_explain_memory_and_form_factor_compatibility(self):
+        response = self.client.get(
+            "/api/builds/options",
+            params={"cpu_id": "cpu-000000002"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        options = response.json()
+        memory_options = {
+            option["item"]["id"]: option for option in options["memory"]
+        }
+        self.assertTrue(memory_options["memory-000000003"]["compatible"])
+        self.assertFalse(memory_options["memory-000000007"]["compatible"])
+        self.assertIn(
+            "DDR5",
+            memory_options["memory-000000007"]["reasons"][0],
+        )
+        form_factors = {
+            option["value"]: option for option in options["form_factors"]
+        }
+        self.assertTrue(form_factors["ATX"]["compatible"])
+        self.assertFalse(form_factors["Mini-ITX"]["compatible"])
+
+    def test_generation_explains_known_failure_and_unmodeled_storage(self):
+        response = self.client.post(
+            "/api/builds/generate",
+            json={
+                "cpu_id": "cpu-000000002",
+                "gpu_id": "gpu-000000001",
+                "storage_id": "storage-000000001",
+                "memory_id": "memory-000000007",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        build = response.json()
+        self.assertFalse(build["compatible"])
+        checks = {check["code"]: check for check in build["compatibility_checks"]}
+        self.assertEqual(checks["memory_motherboard_type"]["status"], "fail")
+        self.assertIn("DDR5", checks["memory_motherboard_type"]["message"])
+        self.assertEqual(checks["storage_motherboard_interface"]["status"], "unknown")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,12 +14,32 @@
 
 	interface BuildResult {
 		compatible: boolean;
+		compatibility_checks: CompatibilityCheck[];
 		pricing: {
 			estimated_total_cents: number;
 			budget_status: string;
 			mode: PricingMode;
 		};
 		report: string;
+	}
+
+	interface CompatibilityCheck {
+		code: string;
+		components: string[];
+		status: 'pass' | 'fail' | 'blocked' | 'unknown';
+		message: string;
+	}
+
+	interface CompatibilityOption<T> {
+		item: T;
+		compatible: boolean | null;
+		reasons: string[];
+	}
+
+	interface FormFactorOption {
+		value: string;
+		compatible: boolean | null;
+		reasons: string[];
 	}
 
 	const catalogNames: CatalogName[] = [
@@ -40,8 +60,8 @@
 	let cpus = $state<CatalogItem[]>([]);
 	let gpus = $state<CatalogItem[]>([]);
 	let storages = $state<CatalogItem[]>([]);
-	let memoryKits = $state<CatalogItem[]>([]);
-	let motherboards = $state<CatalogItem[]>([]);
+	let memoryOptions = $state<CompatibilityOption<CatalogItem>[]>([]);
+	let formFactorOptions = $state<FormFactorOption[]>([]);
 	let selectedCpu = $state('');
 	let selectedGpu = $state('');
 	let selectedStorage = $state('');
@@ -51,8 +71,22 @@
 	let selectedBudget = $state('');
 	let buildResult = $state<BuildResult | null>(null);
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
-	let formFactors = $derived(
-		[...new Set(motherboards.map((motherboard) => motherboard.form_factor).filter(Boolean))].sort()
+	let showIncompatibleOptions = $state(false);
+	let compatibilityOptionsError = $state('');
+	let optionsRequestId = 0;
+	let visibleMemoryOptions = $derived(
+		memoryOptions.filter(
+			(option) =>
+				option.compatible !== false || showIncompatibleOptions || option.item.id === selectedMemory
+		)
+	);
+	let visibleFormFactors = $derived(
+		formFactorOptions.filter(
+			(option) =>
+				option.compatible !== false ||
+				showIncompatibleOptions ||
+				option.value === selectedFormFactor
+		)
 	);
 
 	async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -73,11 +107,34 @@
 			const catalogs = await Promise.all(
 				catalogNames.map((name) => fetchJson<CatalogItem[]>(`/api/catalogs/${name}`))
 			);
-			[cpus, gpus, storages, memoryKits, motherboards] = catalogs;
+			[cpus, gpus, storages] = catalogs;
 			apiStatus = 'online';
+			await updateBuildOptions();
 		} catch (error) {
 			catalogError = error instanceof Error ? error.message : 'Could not load component catalogs.';
 			apiStatus = 'offline';
+		}
+	}
+
+	async function updateBuildOptions() {
+		const requestId = ++optionsRequestId;
+		compatibilityOptionsError = '';
+		const query = new URLSearchParams();
+		if (selectedCpu) query.set('cpu_id', selectedCpu);
+		if (selectedFormFactor) query.set('form_factor', selectedFormFactor);
+		if (selectedMemory) query.set('memory_id', selectedMemory);
+		try {
+			const options = await fetchJson<{
+				memory: CompatibilityOption<CatalogItem>[];
+				form_factors: FormFactorOption[];
+			}>(`/api/builds/options?${query.toString()}`);
+			if (requestId !== optionsRequestId) return;
+			memoryOptions = options.memory;
+			formFactorOptions = options.form_factors;
+		} catch (error) {
+			if (requestId !== optionsRequestId) return;
+			compatibilityOptionsError =
+				error instanceof Error ? error.message : 'Could not check component compatibility.';
 		}
 	}
 
@@ -156,7 +213,13 @@
 	<form onsubmit={generateBuild}>
 		<label for="cpu">
 			CPU:
-			<select name="cpu" id="cpu" bind:value={selectedCpu} required>
+			<select
+				name="cpu"
+				id="cpu"
+				bind:value={selectedCpu}
+				onchange={() => void updateBuildOptions()}
+				required
+			>
 				<option value="">Choose a CPU</option>
 				{#each cpus as cpu (cpu.id)}
 					<option value={cpu.id}>{cpu.name}</option>
@@ -186,23 +249,56 @@
 
 		<label for="memory">
 			Memory:
-			<select name="memory" id="memory" bind:value={selectedMemory} required>
+			<select
+				name="memory"
+				id="memory"
+				bind:value={selectedMemory}
+				onchange={() => void updateBuildOptions()}
+				required
+			>
 				<option value="">Choose a memory kit</option>
-				{#each memoryKits as memory (memory.id)}
-					<option value={memory.id}>{memory.name}</option>
+				{#each visibleMemoryOptions as option (option.item.id)}
+					<option value={option.item.id}>
+						{option.item.name}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
+					</option>
 				{/each}
 			</select>
 		</label>
 
+		{#if selectedMemory && memoryOptions.find((option) => option.item.id === selectedMemory)?.compatible === false}
+			<p class="warning" role="status">
+				The selected memory kit is not compatible with the CPU and form factor. Choose a compatible
+				kit or enable “show incompatible options” to review the reason.
+			</p>
+		{/if}
+
 		<label for="form-factor">
 			Motherboard form factor:
-			<select name="form-factor" id="form-factor" bind:value={selectedFormFactor}>
+			<select
+				name="form-factor"
+				id="form-factor"
+				bind:value={selectedFormFactor}
+				onchange={() => void updateBuildOptions()}
+			>
 				<option value="">Any form factor</option>
-				{#each formFactors as formFactor (formFactor)}
-					<option value={formFactor}>{formFactor}</option>
+				{#each visibleFormFactors as option (option.value)}
+					<option value={option.value}>
+						{option.value}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
+					</option>
 				{/each}
 			</select>
 		</label>
+
+		<label class="toggle" for="show-incompatible">
+			<input type="checkbox" id="show-incompatible" bind:checked={showIncompatibleOptions} />
+			Show incompatible options and why they do not fit
+		</label>
+		{#if compatibilityOptionsError}
+			<p class="warning" role="status">
+				Could not pre-filter options: {compatibilityOptionsError}. The API will still check
+				compatibility when you generate a build.
+			</p>
+		{/if}
 
 		<label for="mode">
 			Pricing mode:
@@ -241,9 +337,17 @@
 			<h2>Generated build</h2>
 			<p>
 				Compatibility: {buildResult.compatible
-					? 'Pass'
-					: 'Some required compatibility checks failed'}
+					? 'No known compatibility failures'
+					: 'Some compatibility checks failed'}
 			</p>
+			<ul class="compatibility-checks">
+				{#each buildResult.compatibility_checks as check (check.code)}
+					<li class={check.status}>
+						<strong>{check.status.toUpperCase()}</strong>
+						<span>{check.message}</span>
+					</li>
+				{/each}
+			</ul>
 			<p>
 				Estimated total: ${(buildResult.pricing.estimated_total_cents / 100).toFixed(2)} USD
 				{#if buildResult.pricing.budget_status !== 'n/a'}
@@ -301,13 +405,30 @@
 	}
 
 	.builder select,
-	.builder input,
 	.builder button {
 		width: 100%;
 		padding: 0.75rem;
 		border: 1px solid #aaa;
 		border-radius: 0.375rem;
 		font: inherit;
+	}
+
+	.builder input:not([type='checkbox']) {
+		width: 100%;
+		padding: 0.75rem;
+		border: 1px solid #aaa;
+		border-radius: 0.375rem;
+		font: inherit;
+	}
+
+	.builder label.toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.builder label.toggle input {
+		width: auto;
 	}
 
 	.builder button {
@@ -325,5 +446,28 @@
 
 	.error {
 		color: #b42318;
+	}
+
+	.warning {
+		color: #805500;
+	}
+
+	.compatibility-checks {
+		display: grid;
+		gap: 0.5rem;
+		padding-left: 1.25rem;
+	}
+
+	.compatibility-checks li {
+		padding-left: 0.25rem;
+	}
+
+	.compatibility-checks .fail {
+		color: #b42318;
+	}
+
+	.compatibility-checks .unknown,
+	.compatibility-checks .blocked {
+		color: #805500;
 	}
 </style>

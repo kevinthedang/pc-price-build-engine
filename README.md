@@ -57,6 +57,7 @@ The health endpoint is available at `http://127.0.0.1:8000/api/health`, the inte
 
 - `GET /api/catalogs`: list available catalogs and their record counts.
 - `GET /api/catalogs/cpus`, `/gpus`, `/storage`, `/memory`, `/motherboards`, `/cases`, `/coolers`, and `/psus`: retrieve catalog records.
+- `GET /api/builds/options?cpu_id=...&form_factor=...&memory_id=...`: return memory and motherboard-form-factor options with compatibility status and reasons. Omit selections that have not been made yet.
 - `POST /api/builds/generate`: generate a compatible build from selected component IDs.
 
 For example:
@@ -75,7 +76,7 @@ curl -X POST http://127.0.0.1:8000/api/builds/generate \
   }'
 ```
 
-The response includes selected parts, compatible motherboard/case/PSU/cooler options, a compatibility result, the report text, and estimated pricing in integer cents. `form_factor` and `budget_limit_cents` are optional; `mode` accepts `cheapest`, `budget`, `balanced`, `premium`, or `top_of_line`. Pricing modes are currently reported but do not rerank complete builds. The frontend's Vite development server proxies `/api` requests to `http://127.0.0.1:8000`.
+The response includes selected parts, compatible motherboard/case/PSU/cooler options, a `compatibility_checks` list with `pass`, `fail`, `blocked`, or `unknown` statuses and user-readable reasons, the report text, and estimated pricing in integer cents. A build is marked `compatible: false` when a modeled compatibility check fails. `blocked` checks depend on an upstream fit check; `unknown` means the catalog does not contain enough data to verify that rule. Storage-interface compatibility is currently `unknown` because storage connector and motherboard slot specifications are not modeled. `form_factor` and `budget_limit_cents` are optional; `mode` accepts `cheapest`, `budget`, `balanced`, `premium`, or `top_of_line`. Pricing modes are currently reported but do not rerank complete builds. The frontend uses the options endpoint to hide incompatible memory and form factors by default; “Show incompatible options” reveals them with explanations. The generation endpoint remains authoritative and returns the same detailed checks. The frontend's Vite development server proxies `/api` requests to `http://127.0.0.1:8000`.
 
 When the frontend and API are hosted on different origins, set `VITE_API_BASE_URL` to the API origin when building the frontend, and set `PC_BUILD_ALLOWED_ORIGINS` on the API to the frontend origin (or comma-separated list of allowed frontend origins).
 
