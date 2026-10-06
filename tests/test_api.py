@@ -1,9 +1,10 @@
 import unittest
-
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 from backend.api import CATALOG_FILES, app
+from backend.main import load_json
 
 
 class BuildApiTests(unittest.TestCase):
@@ -124,6 +125,20 @@ class BuildApiTests(unittest.TestCase):
         self.assertEqual(checks["memory_motherboard_type"]["status"], "fail")
         self.assertIn("DDR5", checks["memory_motherboard_type"]["message"])
         self.assertEqual(checks["storage_motherboard_interface"]["status"], "unknown")
+
+
+class WorkerCatalogCacheTests(unittest.TestCase):
+    def test_load_json_uses_worker_catalog_cache(self):
+        with patch(
+            "backend.main._worker_catalogs",
+            {"cpus.json": '[{"id": "worker-cpu"}]'},
+        ):
+            self.assertEqual(load_json("cpus.json"), [{"id": "worker-cpu"}])
+
+    def test_missing_worker_catalog_raises_file_not_found(self):
+        with patch("backend.main._worker_catalogs", {}):
+            with self.assertRaises(FileNotFoundError):
+                load_json("missing.json")
 
 
 if __name__ == "__main__":

@@ -5,11 +5,22 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 PSU_SYSTEM_ALLOWANCE_W = 200
+_worker_catalogs: dict[str, str] | None = None
 
 
 def load_json(filename):
+	if _worker_catalogs is not None:
+		try:
+			return json.loads(_worker_catalogs[filename])
+		except KeyError as error:
+			raise FileNotFoundError(filename) from error
 	with (DATA_DIR / filename).open(encoding="utf-8") as data_file:
 		return json.load(data_file)
+
+
+def set_worker_catalogs(catalogs: dict[str, str]) -> None:
+	global _worker_catalogs
+	_worker_catalogs = catalogs
 
 
 def load_offers():

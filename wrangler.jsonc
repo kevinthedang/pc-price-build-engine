@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pc-price-build-engine-api",
+  "main": "backend/worker.py",
+  "base_dir": "backend",
+  "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["python_workers"],
+  "assets": {
+    "directory": "./data",
+    "binding": "CATALOGS",
+    "run_worker_first": true
+  }
+}

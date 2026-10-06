@@ -151,13 +151,19 @@ activemq-data/
 
 # Environments
 .env
+.env.*
 .envrc
+.dev.vars*
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Cloudflare Wrangler local state
+.wrangler/
+python_modules/
 
 # Spyder project settings
 .spyderproject

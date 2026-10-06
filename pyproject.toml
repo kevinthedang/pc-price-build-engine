@@ -1,0 +1,14 @@
+[project]
+name = "pc-price-build-engine"
+version = "0.1.0"
+description = "PC component compatibility and build-generation API"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+]
+
+[dependency-groups]
+dev = [
+    "workers-py",
+    "workers-runtime-sdk",
+]

@@ -1,0 +1,7 @@
+.git/
+.wrangler/
+.venv/
+**/.venv/
+.venv-workers/
+**/.venv-workers/
+**/node_modules/

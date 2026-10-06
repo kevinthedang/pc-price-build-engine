@@ -78,7 +78,27 @@ curl -X POST http://127.0.0.1:8000/api/builds/generate \
 
 The response includes selected parts, compatible motherboard/case/PSU/cooler options, a `compatibility_checks` list with `pass`, `fail`, `blocked`, or `unknown` statuses and user-readable reasons, the report text, and estimated pricing in integer cents. A build is marked `compatible: false` when a modeled compatibility check fails. `blocked` checks depend on an upstream fit check; `unknown` means the catalog does not contain enough data to verify that rule. Storage-interface compatibility is currently `unknown` because storage connector and motherboard slot specifications are not modeled. `form_factor` and `budget_limit_cents` are optional; `mode` accepts `cheapest`, `budget`, `balanced`, `premium`, or `top_of_line`. Pricing modes are currently reported but do not rerank complete builds. The frontend uses the options endpoint to hide incompatible memory and form factors by default; “Show incompatible options” reveals them with explanations. The generation endpoint remains authoritative and returns the same detailed checks. The frontend's Vite development server proxies `/api` requests to `http://127.0.0.1:8000`.
 
-When the frontend and API are hosted on different origins, set `VITE_API_BASE_URL` to the API origin when building the frontend, and set `PC_BUILD_ALLOWED_ORIGINS` on the API to the frontend origin (or comma-separated list of allowed frontend origins).
+When the frontend and API are hosted on different origins, set `VITE_API_BASE_URL` to the API origin when building the frontend. For a FastAPI server hosted outside Cloudflare Workers, set `PC_BUILD_ALLOWED_ORIGINS` on the API to the frontend origin (or comma-separated list of allowed frontend origins); the Worker deployment below has its own CORS configuration.
+
+## Deploy the API to Cloudflare Workers
+
+The API can run as a Python Worker using Cloudflare's ASGI adapter for FastAPI. The Worker loads the JSON files from `data/` through a static-assets binding, so the catalogs and offers remain the same source files used by local development. Cloudflare Python Workers require Python 3.13 or newer, `uv`, and Node.js.
+
+From the repository root, install the Worker dependencies and start a local Cloudflare Worker:
+
+```bash
+uv sync
+uv run pywrangler dev
+```
+
+Authenticate Wrangler with your Cloudflare account, then deploy:
+
+```bash
+uv run pywrangler login
+uv run pywrangler deploy
+```
+
+The deployed API's `*.workers.dev` URL can be used initially; optionally configure a custom domain for a stable API URL. In the Cloudflare Pages project settings, set `VITE_API_BASE_URL` to that API origin for both production and preview builds, then trigger a new Pages deployment. The Worker allows cross-origin requests without credentials; its API endpoints are public and do not use cookie-based authentication. Local API runs continue to use `PC_BUILD_ALLOWED_ORIGINS` for origin restrictions.
 
 ## Run the Frontend
 
@@ -92,7 +112,7 @@ npm run dev -- --open
 
 Vite prints the local URL, usually `http://localhost:5173`. Keep the API server running in its own terminal. The frontend loads the component catalogs and submits builds through the API.
 
-For Cloudflare Pages, set the project root directory to `frontend`, set the `NODE_VERSION` environment variable to `24.21.0`, and set `VITE_API_BASE_URL` to the deployed API origin for production and preview builds. Configure `PC_BUILD_ALLOWED_ORIGINS` on the API with the corresponding Pages origin. The `frontend/.nvmrc` file pins the Node.js version for local Node version managers.
+For Cloudflare Pages, set the project root directory to `frontend`, set the `NODE_VERSION` environment variable to `24.21.0`, and set `VITE_API_BASE_URL` to the deployed API origin for production and preview builds. For an API hosted outside Cloudflare Workers, configure `PC_BUILD_ALLOWED_ORIGINS` with the corresponding Pages origin. The `frontend/.nvmrc` file pins the Node.js version for local Node version managers.
 
 ## Usage
 
