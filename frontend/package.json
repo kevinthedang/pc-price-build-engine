@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"backend": "cd ../backend && python3 -m venv .venv && python -m uvicorn api:app --reload",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",

@@ -248,53 +248,15 @@ def format_build_report(
 	return "\n".join(lines)
 
 
-def main():
-	parser = argparse.ArgumentParser(description="Find compatible motherboards.")
-	parser.add_argument(
-		"--cpu-id",
-		"--cpu",
-		dest="cpu_id",
-		required=True,
-		help="ID of the selected CPU",
-	)
-	parser.add_argument(
-		"--gpu-id",
-		"--gpu",
-		dest="gpu_id",
-		required=True,
-		help="ID of the selected GPU",
-	)
-	parser.add_argument(
-		"--storage-id",
-		"--storage",
-		dest="storage_id",
-		required=True,
-		help="ID of the selected storage drive",
-	)
-	parser.add_argument(
-		"--memory-id",
-		"--memory",
-		dest="memory_id",
-		required=True,
-		help="ID of the selected memory kit",
-	)
-	parser.add_argument(
-		"--form-factor",
-		help="Optionally filter by motherboard form factor, such as ATX or Micro-ATX",
-	)
-	parser.add_argument(
-		"--pricing-mode",
-		choices=["cheapest", "budget", "balanced", "premium", "top_of_line"],
-		default="cheapest",
-		help="How to rank candidate build options for pricing-aware recommendations.",
-	)
-	parser.add_argument(
-		"--budget-limit",
-		type=float,
-		help="Optional maximum total spend for budget mode in USD.",
-	)
-	arguments = parser.parse_args()
-
+def generate_build(
+	cpu_id,
+	gpu_id,
+	storage_id,
+	memory_id,
+	form_factor=None,
+	pricing_mode="cheapest",
+	budget_limit_cents=None,
+):
 	cpus = load_json("cpus.json")
 	gpus = load_json("gpus.json")
 	motherboards = load_json("motherboards.json")
@@ -304,25 +266,21 @@ def main():
 	memory_modules = load_json("memory.json")
 	offers = load_offers()
 
-	cpu = next((item for item in cpus if item["id"] == arguments.cpu_id), None)
+	cpu = next((item for item in cpus if item["id"] == cpu_id), None)
 	if cpu is None:
-		print(f"CPU not found: {arguments.cpu_id}")
-		return 1
+		raise ValueError(f"CPU not found: {cpu_id}")
 
-	gpu = next((item for item in gpus if item["id"] == arguments.gpu_id), None)
+	gpu = next((item for item in gpus if item["id"] == gpu_id), None)
 	if gpu is None:
-		print(f"GPU not found: {arguments.gpu_id}")
-		return 1
+		raise ValueError(f"GPU not found: {gpu_id}")
 
-	storage = next((item for item in storages if item["id"] == arguments.storage_id), None)
+	storage = next((item for item in storages if item["id"] == storage_id), None)
 	if storage is None:
-		print(f"Storage not found: {arguments.storage_id}")
-		return 1
+		raise ValueError(f"Storage not found: {storage_id}")
 
-	memory = next((item for item in memory_modules if item["id"] == arguments.memory_id), None)
+	memory = next((item for item in memory_modules if item["id"] == memory_id), None)
 	if memory is None:
-		print(f"Memory not found: {arguments.memory_id}")
-		return 1
+		raise ValueError(f"Memory not found: {memory_id}")
 
 	psus = load_json("psus.json")
 	compatible_motherboards = []
@@ -334,8 +292,8 @@ def main():
 		if memory["capacity_gb"] * memory["modules"] > motherboard["max_memory_gb"]:
 			continue
 		if (
-			arguments.form_factor is None
-			or motherboard["form_factor"] == arguments.form_factor
+			form_factor is None
+			or motherboard["form_factor"] == form_factor
 		):
 			compatible_motherboards.append(motherboard)
 
@@ -402,32 +360,137 @@ def main():
 		selected_psu = min(compatible_psus, key=lambda psu: psu["wattage"])
 		selected_part_total += offer_total(offers, "psu", selected_psu["id"])
 
-	pricing_mode = arguments.pricing_mode
-	budget_limit = arguments.budget_limit
+	budget_limit = (
+		budget_limit_cents / 100 if budget_limit_cents is not None else None
+	)
 	if pricing_mode == "budget" and budget_limit is not None:
-		budget_status = "within budget" if selected_part_total <= budget_limit else "over budget"
+		budget_status = (
+			"within budget"
+			if round(selected_part_total * 100) <= budget_limit_cents
+			else "over budget"
+		)
 	else:
 		budget_status = "n/a"
-	print(
-		format_build_report(
-			cpu,
-			gpu,
-			storage,
-			memory,
-			compatible_motherboards,
-			compatible_psus,
-			compatible_cases,
-			coolers_by_case,
-			minimum_psu_wattage,
-			offers,
-			pricing_mode=pricing_mode,
-			budget_limit=budget_limit,
-			estimated_total_build_cost=selected_part_total,
-			selected_motherboard=selected_motherboard,
-			selected_case=selected_case,
-			selected_psu=selected_psu,
+	selected_parts.update(
+		{
+			"motherboard": selected_motherboard,
+			"case": selected_case,
+			"psu": selected_psu,
+		}
+	)
+	cost_breakdown = {
+		component_type: offer_total(offers, component_type, part["id"])
+		for component_type, part in selected_parts.items()
+		if part is not None
+	}
+	compatible = bool(
+		compatible_motherboards
+		and compatible_psus
+		and compatible_cases
+		and storage
+		and memory
+		and (
+			cpu["stock_cooler_included"]
+			or any(coolers_by_case[case["name"]] for case in compatible_cases)
 		)
 	)
+	report = format_build_report(
+		cpu,
+		gpu,
+		storage,
+		memory,
+		compatible_motherboards,
+		compatible_psus,
+		compatible_cases,
+		coolers_by_case,
+		minimum_psu_wattage,
+		offers,
+		pricing_mode=pricing_mode,
+		budget_limit=budget_limit,
+		estimated_total_build_cost=selected_part_total,
+		selected_motherboard=selected_motherboard,
+		selected_case=selected_case,
+		selected_psu=selected_psu,
+	)
+	return {
+		"selected_parts": selected_parts,
+		"compatible_options": {
+			"motherboards": compatible_motherboards,
+			"psus": compatible_psus,
+			"cases": compatible_cases,
+			"coolers_by_case": {
+				case["id"]: coolers_by_case[case["name"]]
+				for case in compatible_cases
+			},
+		},
+		"minimum_psu_wattage": minimum_psu_wattage,
+		"compatible": compatible,
+		"pricing": {
+			"mode": pricing_mode,
+			"budget_limit_cents": budget_limit_cents,
+			"budget_status": budget_status,
+			"estimated_total_cents": round(selected_part_total * 100),
+			"cost_breakdown_cents": {
+				component_type: round(amount * 100)
+				for component_type, amount in cost_breakdown.items()
+			},
+		},
+		"report": report,
+	}
+
+
+def main():
+	parser = argparse.ArgumentParser(description="Find compatible motherboards.")
+	parser.add_argument(
+		"--cpu-id", "--cpu", dest="cpu_id", required=True,
+		help="ID of the selected CPU",
+	)
+	parser.add_argument(
+		"--gpu-id", "--gpu", dest="gpu_id", required=True,
+		help="ID of the selected GPU",
+	)
+	parser.add_argument(
+		"--storage-id", "--storage", dest="storage_id", required=True,
+		help="ID of the selected storage drive",
+	)
+	parser.add_argument(
+		"--memory-id", "--memory", dest="memory_id", required=True,
+		help="ID of the selected memory kit",
+	)
+	parser.add_argument(
+		"--form-factor",
+		help="Optionally filter by motherboard form factor, such as ATX or Micro-ATX",
+	)
+	parser.add_argument(
+		"--pricing-mode",
+		choices=["cheapest", "budget", "balanced", "premium", "top_of_line"],
+		default="cheapest",
+		help="How to rank candidate build options for pricing-aware recommendations.",
+	)
+	parser.add_argument(
+		"--budget-limit",
+		type=float,
+		help="Optional maximum total spend for budget mode in USD.",
+	)
+	arguments = parser.parse_args()
+	try:
+		build = generate_build(
+			arguments.cpu_id,
+			arguments.gpu_id,
+			arguments.storage_id,
+			arguments.memory_id,
+			form_factor=arguments.form_factor,
+			pricing_mode=arguments.pricing_mode,
+			budget_limit_cents=(
+				round(arguments.budget_limit * 100)
+				if arguments.budget_limit is not None
+				else None
+			),
+		)
+	except ValueError as error:
+		print(error)
+		return 1
+	print(build["report"])
 	return 0
 
 

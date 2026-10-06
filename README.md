@@ -53,7 +53,31 @@ Start the development server from the `backend/` directory:
 python -m uvicorn api:app --reload
 ```
 
-The health endpoint is available at `http://127.0.0.1:8000/api/health` and the interactive API documentation at `http://127.0.0.1:8000/docs`.
+The health endpoint is available at `http://127.0.0.1:8000/api/health`, the interactive API documentation at `http://127.0.0.1:8000/docs`, and the component catalogs and build-generation endpoint are available at:
+
+- `GET /api/catalogs`: list available catalogs and their record counts.
+- `GET /api/catalogs/cpus`, `/gpus`, `/storage`, `/memory`, `/motherboards`, `/cases`, `/coolers`, and `/psus`: retrieve catalog records.
+- `POST /api/builds/generate`: generate a compatible build from selected component IDs.
+
+For example:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/builds/generate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "cpu_id": "cpu-000000002",
+    "gpu_id": "gpu-000000001",
+    "storage_id": "storage-000000001",
+    "memory_id": "memory-000000003",
+    "form_factor": "ATX",
+    "mode": "budget",
+    "budget_limit_cents": 150000
+  }'
+```
+
+The response includes selected parts, compatible motherboard/case/PSU/cooler options, a compatibility result, the report text, and estimated pricing in integer cents. `form_factor` and `budget_limit_cents` are optional; `mode` accepts `cheapest`, `budget`, `balanced`, `premium`, or `top_of_line`. Pricing modes are currently reported but do not rerank complete builds. The frontend's Vite development server proxies `/api` requests to `http://127.0.0.1:8000`.
+
+When the frontend and API are hosted on different origins, set `VITE_API_BASE_URL` to the API origin when building the frontend, and set `PC_BUILD_ALLOWED_ORIGINS` on the API to the frontend origin (or comma-separated list of allowed frontend origins).
 
 ## Run the Frontend
 
@@ -65,9 +89,9 @@ npm ci
 npm run dev -- --open
 ```
 
-Vite prints the local URL, usually `http://localhost:5173`. Keep the API server running in its own terminal. The frontend is not yet connected to the API.
+Vite prints the local URL, usually `http://localhost:5173`. Keep the API server running in its own terminal. The frontend loads the component catalogs and submits builds through the API.
 
-For Cloudflare Pages, set the project root directory to `frontend` and set the `NODE_VERSION` environment variable to `24.21.0` for production and preview builds. The `frontend/.nvmrc` file pins that Node.js version for local Node version managers.
+For Cloudflare Pages, set the project root directory to `frontend`, set the `NODE_VERSION` environment variable to `24.21.0`, and set `VITE_API_BASE_URL` to the deployed API origin for production and preview builds. Configure `PC_BUILD_ALLOWED_ORIGINS` on the API with the corresponding Pages origin. The `frontend/.nvmrc` file pins the Node.js version for local Node version managers.
 
 ## Usage
 
