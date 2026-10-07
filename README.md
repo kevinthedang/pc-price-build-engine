@@ -78,6 +78,10 @@ curl -X POST http://127.0.0.1:8000/api/builds/generate \
 
 The response includes selected parts, compatible motherboard/case/PSU/cooler options, a `compatibility_checks` list with `pass`, `fail`, `blocked`, or `unknown` statuses and user-readable reasons, the report text, and estimated pricing in integer cents. A build is marked `compatible: false` when a modeled compatibility check fails. `blocked` checks depend on an upstream fit check; `unknown` means the catalog does not contain enough data to verify that rule. Storage-interface compatibility is currently `unknown` because storage connector and motherboard slot specifications are not modeled. `form_factor` and `budget_limit_cents` are optional; `mode` accepts `cheapest`, `budget`, `balanced`, `premium`, or `top_of_line`. Pricing modes are currently reported but do not rerank complete builds. The frontend uses the options endpoint to hide incompatible memory and form factors by default; “Show incompatible options” reveals them with explanations. The generation endpoint remains authoritative and returns the same detailed checks. The frontend's Vite development server proxies `/api` requests to `http://127.0.0.1:8000`.
 
+## Currency conversion
+
+The API and catalog prices remain USD. The frontend can display estimated totals and component costs in USD, CAD, EUR, GBP, AUD, and JPY. It loads daily reference rates from the no-key [Frankfurter API](https://frankfurter.dev/), shows the returned rate date, and converts a budget back to USD before submitting it to the build API. If rate loading fails, the UI reports the error and keeps USD available. Converted amounts are estimates, not retailer quotes; they do not include local taxes, import charges, or retailer/payment-provider exchange fees.
+
 When the frontend and API are hosted on different origins, set `VITE_API_BASE_URL` to the API origin when building the frontend. For a FastAPI server hosted outside Cloudflare Workers, set `PC_BUILD_ALLOWED_ORIGINS` on the API to the frontend origin (or comma-separated list of allowed frontend origins); the Worker deployment below has its own CORS configuration.
 
 ## Deploy the API to Cloudflare Workers
@@ -99,6 +103,17 @@ uv run pywrangler deploy
 ```
 
 The deployed API's `*.workers.dev` URL can be used initially; optionally configure a custom domain for a stable API URL. In the Cloudflare Pages project settings, set `VITE_API_BASE_URL` to that API origin for both production and preview builds, then trigger a new Pages deployment. The Worker allows cross-origin requests without credentials; its API endpoints are public and do not use cookie-based authentication. Local API runs continue to use `PC_BUILD_ALLOWED_ORIGINS` for origin restrictions.
+
+### Automatically deploy from GitHub Actions
+
+The Tests workflow runs the unit tests on pull requests to `master`. The separate Deploy API workflow reuses that test job on pushes to `master` and deploys the Worker only after tests pass. Pull requests run tests only; they do not deploy.
+
+To enable deployment, create a Cloudflare API token with the **Edit Cloudflare Workers** permission, scoped to the account hosting the Worker. In the GitHub repository, open **Settings > Secrets and variables > Actions** and add these repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`: the token value.
+- `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID where the Worker is deployed.
+
+Do not put the token in the repository or in Wrangler configuration. Once these secrets are set, merging or pushing to `master` will run tests and then deploy the Worker automatically.
 
 ## Run the Frontend
 
