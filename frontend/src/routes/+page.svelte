@@ -89,6 +89,11 @@
 	let exchangeRateDate = $state('');
 	let exchangeRateError = $state('');
 	let buildResult = $state<BuildResult | null>(null);
+	let canGenerateBuild = $derived(
+		Boolean(selectedCpu && selectedGpu && selectedStorage && selectedMemory) &&
+			!isGenerating &&
+			!catalogError
+	);
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
 	const supportedCurrencies: { code: CurrencyCode; name: string }[] = [
 		{ code: 'USD', name: 'US Dollar' },
@@ -457,9 +462,11 @@
 			</p>
 		{/if}
 
-		<button type="submit" disabled={isGenerating || !!catalogError}>
-			{isGenerating ? 'Generating...' : 'Generate build'}
-		</button>
+		<div class="form-actions">
+			<button class="compact-action" type="submit" disabled={!canGenerateBuild}>
+				{isGenerating ? 'Generating...' : 'Generate build'}
+			</button>
+		</div>
 	</form>
 
 	{#if buildError}
@@ -605,6 +612,23 @@
 		font: inherit;
 	}
 
+	.form-actions {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 1.25rem;
+	}
+
+	.builder button.compact-action {
+		width: auto;
+		min-width: 12rem;
+		margin: 0;
+		cursor: pointer;
+	}
+
+	.builder button.compact-action:disabled {
+		cursor: not-allowed;
+	}
+
 	.builder input:not([type='checkbox']) {
 		box-sizing: border-box;
 		width: 100%;
@@ -622,11 +646,6 @@
 
 	.builder label.toggle input {
 		width: auto;
-	}
-
-	.builder button {
-		margin-block: 1rem;
-		cursor: pointer;
 	}
 
 	.result {
@@ -698,6 +717,11 @@
 
 		.form-grid {
 			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.form-actions,
+		.builder button.compact-action {
+			width: 100%;
 		}
 	}
 </style>
