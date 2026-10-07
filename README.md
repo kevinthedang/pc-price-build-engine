@@ -108,12 +108,14 @@ The deployed API's `*.workers.dev` URL can be used initially; optionally configu
 
 The Tests workflow runs the unit tests on pull requests to `master`. The separate Deploy API workflow reuses that test job on pushes to `master` and deploys the Worker only after tests pass. Pull requests run tests only; they do not deploy.
 
-To enable deployment, create a Cloudflare API token with the **Edit Cloudflare Workers** permission, scoped to the account hosting the Worker. In the GitHub repository, open **Settings > Secrets and variables > Actions** and add these repository secrets:
+To enable deployment, create a Cloudflare API token with permission to edit Workers scripts, scoped to the Cloudflare account that should host the Worker. In GitHub, open **Settings > Environments > production** and add these environment secrets:
 
 - `CLOUDFLARE_API_TOKEN`: the token value.
 - `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID where the Worker is deployed.
 
-Do not put the token in the repository or in Wrangler configuration. Once these secrets are set, merging or pushing to `master` will run tests and then deploy the Worker automatically.
+The configured Worker name is `pc-price-build-engine-api` in `wrangler.jsonc`; do not create a secret with that name. If deployment reports “No access to the specified service,” verify that the `production` environment token has Workers Scripts edit permission for the account selected by `CLOUDFLARE_ACCOUNT_ID`, and that the account ID is copied from that same Cloudflare account. A token can authenticate successfully but still lack permission to edit that Worker service.
+
+Do not put the token in the repository or in Wrangler configuration. Once these environment secrets are set, merging or pushing to `master` will run tests and then deploy the Worker automatically.
 
 ## Run the Frontend
 
