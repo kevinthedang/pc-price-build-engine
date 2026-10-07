@@ -3,6 +3,7 @@
 
 	type ApiStatus = 'unknown' | 'checking' | 'online' | 'offline';
 	type PricingMode = 'cheapest' | 'budget' | 'balanced' | 'premium' | 'top_of_line';
+	type CurrencyCode = 'USD' | 'CAD' | 'EUR' | 'GBP' | 'AUD' | 'JPY';
 	type CatalogName =
 		'cpus' | 'gpus' | 'storage' | 'memory' | 'motherboards' | 'cases' | 'coolers' | 'psus';
 
@@ -22,10 +23,19 @@
 		compatibility_checks: CompatibilityCheck[];
 		pricing: {
 			estimated_total_cents: number;
+			cost_breakdown_cents: Record<string, number>;
 			budget_status: string;
 			mode: PricingMode;
 		};
+		selected_parts: Record<string, CatalogItem | null>;
 		report: string;
+	}
+
+	interface ExchangeRateResponse {
+		amount: number;
+		base: string;
+		date: string;
+		rates: Partial<Record<CurrencyCode, number>>;
 	}
 
 	interface CompatibilityCheck {
@@ -73,9 +83,36 @@
 	let selectedMemory = $state('');
 	let selectedFormFactor = $state('');
 	let selectedMode = $state<PricingMode>('budget');
-	let selectedBudget = $state('');
+	let selectedBudget = $state<string | number>('');
+	let selectedCurrency = $state<CurrencyCode>('USD');
+	let exchangeRates = $state<Partial<Record<CurrencyCode, number>>>({ USD: 1 });
+	let exchangeRateDate = $state('');
+	let exchangeRateError = $state('');
 	let buildResult = $state<BuildResult | null>(null);
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
+	const supportedCurrencies: { code: CurrencyCode; name: string }[] = [
+		{ code: 'USD', name: 'US Dollar' },
+		{ code: 'CAD', name: 'Canadian Dollar' },
+		{ code: 'EUR', name: 'Euro' },
+		{ code: 'GBP', name: 'British Pound' },
+		{ code: 'AUD', name: 'Australian Dollar' },
+		{ code: 'JPY', name: 'Japanese Yen' }
+	];
+	let selectedExchangeRate = $derived(exchangeRates[selectedCurrency]);
+
+	function formatAmount(amount: number, currency: CurrencyCode): string {
+		return new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			maximumFractionDigits: currency === 'JPY' ? 0 : 2
+		}).format(amount);
+	}
+
+	function formatCurrency(cents: number, currency: CurrencyCode): string {
+		const rate = exchangeRates[currency];
+		if (rate === undefined) return 'Unavailable';
+		return formatAmount((cents / 100) * rate, currency);
+	}
 	let showIncompatibleOptions = $state(false);
 	let compatibilityOptionsError = $state('');
 	let optionsRequestId = 0;
@@ -98,9 +135,7 @@
 		const totalCapacity = memory.capacity_gb * memory.modules;
 		const totalCapacityLabel = `${totalCapacity}GB total`;
 		const displayName = memory.name.replace(/\b\d+\s*GB\b/i, totalCapacityLabel);
-		return displayName === memory.name
-			? `${memory.name} — ${totalCapacityLabel}`
-			: displayName;
+		return displayName === memory.name ? `${memory.name} — ${totalCapacityLabel}` : displayName;
 	}
 
 	async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -161,16 +196,59 @@
 		}
 	}
 
+	async function loadExchangeRates() {
+		exchangeRateError = '';
+		try {
+			const response = await fetch(
+				'https://api.frankfurter.dev/v1/latest?base=USD&symbols=CAD,EUR,GBP,AUD,JPY'
+			);
+			if (!response.ok) {
+				throw new Error(`Exchange-rate service returned HTTP ${response.status}.`);
+			}
+			const result = (await response.json()) as ExchangeRateResponse;
+			if (result.base !== 'USD' || !result.date) {
+				throw new Error('Exchange-rate response is missing its USD base or rate date.');
+			}
+			const validatedRates: Partial<Record<CurrencyCode, number>> = { USD: 1 };
+			for (const { code } of supportedCurrencies) {
+				if (code === 'USD') continue;
+				const rate = result.rates[code];
+				if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
+					throw new Error(`A valid ${code} exchange rate was not returned.`);
+				}
+				validatedRates[code] = rate;
+			}
+			exchangeRates = validatedRates;
+			exchangeRateDate = result.date;
+		} catch (error) {
+			exchangeRateError =
+				error instanceof Error ? error.message : 'Exchange rates could not be loaded.';
+			exchangeRates = { USD: 1 };
+			exchangeRateDate = '';
+		}
+	}
+
 	async function generateBuild(event: SubmitEvent) {
 		event.preventDefault();
 		buildError = '';
 		buildResult = null;
 		isGenerating = true;
 		try {
-			const budget = selectedBudget.trim();
-			const budgetCents = budget === '' ? undefined : Math.round(Number(budget) * 100);
-			if (budgetCents !== undefined && (!Number.isFinite(budgetCents) || budgetCents < 0)) {
+			const budget = String(selectedBudget).trim();
+			const budgetInSelectedCurrency = budget === '' ? undefined : Number(budget);
+			if (
+				budgetInSelectedCurrency !== undefined &&
+				(!Number.isFinite(budgetInSelectedCurrency) || budgetInSelectedCurrency < 0)
+			) {
 				throw new Error('Enter a valid, non-negative budget.');
+			}
+			let budgetCents: number | undefined;
+			if (budgetInSelectedCurrency !== undefined) {
+				const exchangeRate = selectedExchangeRate;
+				if (exchangeRate === undefined) {
+					throw new Error(`A current ${selectedCurrency} exchange rate is not available.`);
+				}
+				budgetCents = Math.round((budgetInSelectedCurrency / exchangeRate) * 100);
 			}
 			const result = await fetchJson<BuildResult>('/api/builds/generate', {
 				method: 'POST',
@@ -196,6 +274,7 @@
 	onMount(() => {
 		void loadCatalogs();
 		void checkApiHealth();
+		void loadExchangeRates();
 	});
 </script>
 
@@ -221,8 +300,8 @@
 	<p>Choose your core components to generate a compatible build.</p>
 	<aside class="disclaimer" aria-label="Development disclaimer">
 		<strong>Experimental — under active development.</strong>
-		Compatibility checks and price estimates may be incomplete or inaccurate. Verify component
-		compatibility and current prices before purchasing.
+		Compatibility checks and price estimates may be incomplete or inaccurate. Verify component compatibility
+		and current prices before purchasing.
 	</aside>
 
 	{#if catalogError}
@@ -230,59 +309,66 @@
 	{/if}
 
 	<form onsubmit={generateBuild}>
-		<label for="cpu">
-			CPU:
-			<select
-				name="cpu"
-				id="cpu"
-				bind:value={selectedCpu}
-				onchange={() => void updateBuildOptions()}
-				required
-			>
-				<option value="">Choose a CPU</option>
-				{#each cpus as cpu (cpu.id)}
-					<option value={cpu.id}>{cpu.name}</option>
-				{/each}
-			</select>
-		</label>
+		<section class="form-section" aria-labelledby="components-heading">
+			<h2 id="components-heading">Components</h2>
+			<div class="form-grid">
+				<label for="cpu">
+					CPU:
+					<select
+						name="cpu"
+						id="cpu"
+						bind:value={selectedCpu}
+						onchange={() => void updateBuildOptions()}
+						required
+					>
+						<option value="">Choose a CPU</option>
+						{#each cpus as cpu (cpu.id)}
+							<option value={cpu.id}>{cpu.name}</option>
+						{/each}
+					</select>
+				</label>
 
-		<label for="gpu">
-			GPU:
-			<select name="gpu" id="gpu" bind:value={selectedGpu} required>
-				<option value="">Choose a GPU</option>
-				{#each gpus as gpu (gpu.id)}
-					<option value={gpu.id}>{gpu.name}</option>
-				{/each}
-			</select>
-		</label>
+				<label for="gpu">
+					GPU:
+					<select name="gpu" id="gpu" bind:value={selectedGpu} required>
+						<option value="">Choose a GPU</option>
+						{#each gpus as gpu (gpu.id)}
+							<option value={gpu.id}>{gpu.name}</option>
+						{/each}
+					</select>
+				</label>
 
-		<label for="storage">
-			Storage:
-			<select name="storage" id="storage" bind:value={selectedStorage} required>
-				<option value="">Choose storage</option>
-				{#each storages as storage (storage.id)}
-					<option value={storage.id}>{storage.name}</option>
-				{/each}
-			</select>
-		</label>
+				<label for="memory">
+					Memory:
+					<select
+						name="memory"
+						id="memory"
+						bind:value={selectedMemory}
+						onchange={() => void updateBuildOptions()}
+						required
+					>
+						<option value="">Choose a memory kit</option>
+						{#each visibleMemoryOptions as option (option.item.id)}
+							<option value={option.item.id}>
+								{memoryDisplayName(option.item)}{option.compatible === false
+									? ` — ${option.reasons.join(' ')}`
+									: ''}
+							</option>
+						{/each}
+					</select>
+				</label>
 
-		<label for="memory">
-			Memory:
-			<select
-				name="memory"
-				id="memory"
-				bind:value={selectedMemory}
-				onchange={() => void updateBuildOptions()}
-				required
-			>
-				<option value="">Choose a memory kit</option>
-				{#each visibleMemoryOptions as option (option.item.id)}
-					<option value={option.item.id}>
-						{memoryDisplayName(option.item)}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
-					</option>
-				{/each}
-			</select>
-		</label>
+				<label for="storage">
+					Storage:
+					<select name="storage" id="storage" bind:value={selectedStorage} required>
+						<option value="">Choose storage</option>
+						{#each storages as storage (storage.id)}
+							<option value={storage.id}>{storage.name}</option>
+						{/each}
+					</select>
+				</label>
+			</div>
+		</section>
 
 		{#if selectedMemory && memoryOptions.find((option) => option.item.id === selectedMemory)?.compatible === false}
 			<p class="warning" role="status">
@@ -291,22 +377,74 @@
 			</p>
 		{/if}
 
-		<label for="form-factor">
-			Motherboard form factor:
-			<select
-				name="form-factor"
-				id="form-factor"
-				bind:value={selectedFormFactor}
-				onchange={() => void updateBuildOptions()}
-			>
-				<option value="">Any form factor</option>
-				{#each visibleFormFactors as option (option.value)}
-					<option value={option.value}>
-						{option.value}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
-					</option>
-				{/each}
-			</select>
-		</label>
+		<section class="form-section" aria-labelledby="preferences-heading">
+			<h2 id="preferences-heading">Build preferences</h2>
+			<div class="form-grid">
+				<label for="form-factor">
+					Motherboard form factor:
+					<select
+						name="form-factor"
+						id="form-factor"
+						bind:value={selectedFormFactor}
+						onchange={() => void updateBuildOptions()}
+					>
+						<option value="">Any form factor</option>
+						{#each visibleFormFactors as option (option.value)}
+							<option value={option.value}>
+								{option.value}{option.compatible === false ? ` — ${option.reasons.join(' ')}` : ''}
+							</option>
+						{/each}
+					</select>
+				</label>
+
+				<label for="mode">
+					Pricing mode:
+					<select name="mode" id="mode" bind:value={selectedMode}>
+						<option value="cheapest">Cheapest</option>
+						<option value="budget">Budget</option>
+						<option value="balanced">Balanced</option>
+						<option value="premium">Premium</option>
+						<option value="top_of_line">Top of line</option>
+					</select>
+				</label>
+
+				<label for="budget">
+					Budget limit ({selectedCurrency}, optional):
+					<input
+						type="number"
+						id="budget"
+						min="0"
+						step={selectedCurrency === 'JPY' ? 1 : 0.01}
+						bind:value={selectedBudget}
+						placeholder={selectedCurrency === 'JPY' ? '150000' : '1500.00'}
+					/>
+				</label>
+
+				<label for="currency">
+					Display currency:
+					<select id="currency" bind:value={selectedCurrency}>
+						{#each supportedCurrencies as currency (currency.code)}
+							<option value={currency.code} disabled={exchangeRates[currency.code] === undefined}>
+								{currency.code} — {currency.name}
+							</option>
+						{/each}
+					</select>
+				</label>
+			</div>
+
+			{#if selectedCurrency !== 'USD' && selectedExchangeRate !== undefined}
+				<p class="rate-note" aria-live="polite">
+					1 USD = {formatAmount(selectedExchangeRate, selectedCurrency)}
+					{#if exchangeRateDate}
+						· Rate date: {exchangeRateDate}{/if}
+				</p>
+			{/if}
+			{#if exchangeRateError}
+				<p class="warning" role="status">
+					Exchange rates unavailable: {exchangeRateError} Prices remain available in USD.
+				</p>
+			{/if}
+		</section>
 
 		<label class="toggle" for="show-incompatible">
 			<input type="checkbox" id="show-incompatible" bind:checked={showIncompatibleOptions} />
@@ -318,29 +456,6 @@
 				compatibility when you generate a build.
 			</p>
 		{/if}
-
-		<label for="mode">
-			Pricing mode:
-			<select name="mode" id="mode" bind:value={selectedMode}>
-				<option value="cheapest">Cheapest</option>
-				<option value="budget">Budget</option>
-				<option value="balanced">Balanced</option>
-				<option value="premium">Premium</option>
-				<option value="top_of_line">Top of line</option>
-			</select>
-		</label>
-
-		<label for="budget">
-			Budget limit (USD, optional):
-			<input
-				type="number"
-				id="budget"
-				min="0"
-				step="0.01"
-				bind:value={selectedBudget}
-				placeholder="1500.00"
-			/>
-		</label>
 
 		<button type="submit" disabled={isGenerating || !!catalogError}>
 			{isGenerating ? 'Generating...' : 'Generate build'}
@@ -368,12 +483,32 @@
 				{/each}
 			</ul>
 			<p>
-				Estimated total: ${(buildResult.pricing.estimated_total_cents / 100).toFixed(2)} USD
+				Estimated total: {formatCurrency(
+					buildResult.pricing.estimated_total_cents,
+					selectedCurrency
+				)}
 				{#if buildResult.pricing.budget_status !== 'n/a'}
 					({buildResult.pricing.budget_status})
 				{/if}
 			</p>
-			<pre class="result">{buildResult.report}</pre>
+			<h3>Estimated component costs ({selectedCurrency})</h3>
+			<dl class="cost-breakdown">
+				{#each Object.entries(buildResult.pricing.cost_breakdown_cents) as [component, cents] (component)}
+					<div>
+						<dt>{component}</dt>
+						<dd>{formatCurrency(cents, selectedCurrency)}</dd>
+					</div>
+				{/each}
+			</dl>
+			<details>
+				<summary>Detailed build report (original USD prices)</summary>
+				<pre class="result">{buildResult.report}</pre>
+			</details>
+			<p class="disclaimer">
+				Converted amounts are estimates using the exchange rate dated {exchangeRateDate || 'above'}.
+				They do not include local taxes, import charges, retailer-specific pricing, or payment
+				provider fees. Confirm the purchase price with the retailer.
+			</p>
 		</section>
 	{/if}
 </main>
@@ -417,6 +552,24 @@
 		padding: 2rem;
 	}
 
+	.form-section {
+		margin-block: 1.5rem;
+		padding: 1.25rem;
+		border: 1px solid #ddd;
+		border-radius: 0.5rem;
+	}
+
+	.form-section h2 {
+		margin: 0 0 1rem;
+		font-size: 1.2rem;
+	}
+
+	.form-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.25rem 1.25rem;
+	}
+
 	.disclaimer {
 		margin-block: 1.5rem;
 		padding: 0.875rem 1rem;
@@ -438,8 +591,13 @@
 		margin-block: 1rem;
 	}
 
+	.form-grid label {
+		margin-block: 0.5rem;
+	}
+
 	.builder select,
 	.builder button {
+		box-sizing: border-box;
 		width: 100%;
 		padding: 0.75rem;
 		border: 1px solid #aaa;
@@ -448,6 +606,7 @@
 	}
 
 	.builder input:not([type='checkbox']) {
+		box-sizing: border-box;
 		width: 100%;
 		padding: 0.75rem;
 		border: 1px solid #aaa;
@@ -486,6 +645,29 @@
 		color: #805500;
 	}
 
+	.rate-note {
+		margin-top: -0.5rem;
+		color: #555;
+		font-size: 0.9rem;
+	}
+
+	.cost-breakdown {
+		display: grid;
+		gap: 0.5rem;
+		max-width: 24rem;
+	}
+
+	.cost-breakdown div {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.cost-breakdown dd {
+		margin: 0;
+		font-variant-numeric: tabular-nums;
+	}
+
 	.compatibility-checks {
 		display: grid;
 		gap: 0.5rem;
@@ -503,5 +685,19 @@
 	.compatibility-checks .unknown,
 	.compatibility-checks .blocked {
 		color: #805500;
+	}
+
+	@media (max-width: 38rem) {
+		.builder {
+			padding: 1rem;
+		}
+
+		.form-section {
+			padding: 1rem;
+		}
+
+		.form-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>
