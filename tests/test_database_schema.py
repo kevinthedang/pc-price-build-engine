@@ -113,6 +113,22 @@ class DatabaseSchemaTests(unittest.TestCase):
                 for slot in board["m2_slots"]:
                     self.assertRegex(slot["pcie_standard"], r"^PCIe \d\.0 x\d+$")
                     self.assertIn(slot["lane_source"], {"CPU", "Chipset"})
+                    self.assertIsInstance(slot.get("supports_sata"), bool)
+                    disabled = slot.get("sata_ports_disabled_in_sata_mode", 0)
+                    self.assertGreaterEqual(disabled, 0)
+                    if not slot["supports_sata"]:
+                        self.assertEqual(disabled, 0)
+                    self.assertLessEqual(disabled, board["sata_ports"])
+
+    def test_storage_catalog_records_form_factor(self):
+        storage = json.loads(
+            (PROJECT_ROOT / "data" / "storage.json").read_text(encoding="utf-8")
+        )
+        for item in storage:
+            with self.subTest(storage=item["name"]):
+                self.assertIn(item.get("form_factor"), {"M.2 2280", "2.5-inch", "3.5-inch"})
+                if "NVMe" in item["type"]:
+                    self.assertTrue(item["form_factor"].startswith("M.2"))
 
     def test_motherboard_m2_slots_table_rejects_unknown_lane_source(self):
         self.connection.execute(
@@ -121,16 +137,22 @@ class DatabaseSchemaTests(unittest.TestCase):
         )
         insert = (
             "INSERT INTO motherboard_m2_slots "
-            "(product_id, slot_name, pcie_standard, lane_source) VALUES (?, ?, ?, ?)"
+            "(product_id, slot_name, pcie_standard, lane_source, supports_sata, "
+            "sata_ports_disabled_in_sata_mode) VALUES (?, ?, ?, ?, ?, ?)"
         )
-        self.connection.execute(insert, ("mb-test", "M.2_1", "PCIe 4.0 x4", "CPU"))
+        self.connection.execute(insert, ("mb-test", "M.2_1", "PCIe 4.0 x4", "CPU", 1, 2))
         with self.assertRaises(sqlite3.IntegrityError):
             self.connection.execute(
-                insert, ("mb-test", "M.2_2", "PCIe 4.0 x4", "Southbridge")
+                insert, ("mb-test", "M.2_2", "PCIe 4.0 x4", "Southbridge", 0, 0)
             )
         with self.assertRaises(sqlite3.IntegrityError):
             self.connection.execute(
-                insert, ("mb-test", "M.2_1", "PCIe 3.0 x4", "Chipset")
+                insert, ("mb-test", "M.2_1", "PCIe 3.0 x4", "Chipset", 0, 0)
+            )
+        with self.assertRaises(sqlite3.IntegrityError):
+            # A PCIe-only slot cannot disable SATA ports in SATA mode.
+            self.connection.execute(
+                insert, ("mb-test", "M.2_3", "PCIe 4.0 x4", "Chipset", 0, 1)
             )
 
     def test_cpu_memory_speeds_are_unique_per_memory_type(self):

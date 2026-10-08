@@ -56,6 +56,7 @@
 
 	interface StorageCatalogItem extends CatalogItem {
 		type: string;
+		form_factor: string;
 		size_gb: number;
 		pcie_compatibility: string[];
 	}

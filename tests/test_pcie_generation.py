@@ -27,6 +27,7 @@ CORE_I5_13600K = {
 B550_BOARD = {
     "name": "Test B550",
     "pcie_x16_standard": "PCIe 4.0",
+    "sata_ports": 6,
     "m2_slots": [
         {"name": "M.2_1", "pcie_standard": "PCIe 4.0 x4", "lane_source": "CPU"},
         {"name": "M.2_2", "pcie_standard": "PCIe 3.0 x4", "lane_source": "Chipset"},
@@ -35,6 +36,7 @@ B550_BOARD = {
 GEN5_BOARD = {
     "name": "Test Gen5 Board",
     "pcie_x16_standard": "PCIe 5.0",
+    "sata_ports": 4,
     "m2_slots": [
         {"name": "M.2_1", "pcie_standard": "PCIe 5.0 x4", "lane_source": "CPU"},
         {"name": "M.2_2", "pcie_standard": "PCIe 4.0 x4", "lane_source": "Chipset"},
@@ -148,6 +150,7 @@ class StoragePcieCheckTests(unittest.TestCase):
         board = {
             "name": "Chipset Only",
             "pcie_x16_standard": "PCIe 4.0",
+            "sata_ports": 4,
             "m2_slots": [
                 {"name": "M.2_1", "pcie_standard": "PCIe 4.0 x4", "lane_source": "Chipset"}
             ],

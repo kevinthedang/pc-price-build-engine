@@ -14,12 +14,15 @@
             {
                 "name": "M.2_1",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": true
             },
             {
                 "name": "M.2_2",
                 "pcie_standard": "PCIe 3.0 x4",
-                "lane_source": "Chipset"
+                "lane_source": "Chipset",
+                "supports_sata": true,
+                "sata_ports_disabled_in_sata_mode": 2
             }
         ]
     },
@@ -38,12 +41,15 @@
             {
                 "name": "M2_1",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": true,
+                "sata_ports_disabled_in_sata_mode": 1
             },
             {
                 "name": "M2_2",
                 "pcie_standard": "PCIe 3.0 x4",
-                "lane_source": "Chipset"
+                "lane_source": "Chipset",
+                "supports_sata": false
             }
         ]
     },
@@ -62,12 +68,15 @@
             {
                 "name": "M2_1",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             },
             {
                 "name": "M2_2",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "Chipset"
+                "lane_source": "Chipset",
+                "supports_sata": true,
+                "sata_ports_disabled_in_sata_mode": 1
             }
         ]
     },
@@ -86,12 +95,14 @@
             {
                 "name": "M.2_1",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             },
             {
                 "name": "M.2_2",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "Chipset"
+                "lane_source": "Chipset",
+                "supports_sata": false
             }
         ]
     },
@@ -110,17 +121,20 @@
             {
                 "name": "M.2_1",
                 "pcie_standard": "PCIe 5.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             },
             {
                 "name": "M.2_2",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             },
             {
                 "name": "M.2_3",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "Chipset"
+                "lane_source": "Chipset",
+                "supports_sata": false
             }
         ]
     },
@@ -139,12 +153,14 @@
             {
                 "name": "M2_1",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             },
             {
                 "name": "M2_2",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "Chipset"
+                "lane_source": "Chipset",
+                "supports_sata": false
             }
         ]
     },
@@ -163,12 +179,14 @@
             {
                 "name": "M.2_1",
                 "pcie_standard": "PCIe 5.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             },
             {
                 "name": "M.2_2",
                 "pcie_standard": "PCIe 4.0 x4",
-                "lane_source": "CPU"
+                "lane_source": "CPU",
+                "supports_sata": false
             }
         ]
     }

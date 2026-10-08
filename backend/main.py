@@ -745,64 +745,145 @@ def gpu_pcie_check(cpu, gpu, motherboard=None):
 	}
 
 
+def plural(count, noun):
+	return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+def drive_pcie_standard(item):
+	standards = [
+		standard
+		for standard in item.get("pcie_compatibility", [])
+		if pcie_generation(standard) is not None
+	]
+	return max(standards, key=pcie_generation) if standards else None
+
+
+def is_m2_drive(item):
+	form_factor = item.get("form_factor")
+	if form_factor is not None:
+		return form_factor.startswith("M.2")
+	return drive_pcie_standard(item) is not None
+
+
+def m2_slot_limits(cpu, motherboard, slot):
+	slot_generation = format_pcie_generation(pcie_generation(slot["pcie_standard"]))
+	limits = [
+		(
+			slot["pcie_standard"],
+			f"{slot['name']} on the {motherboard['name']} is {slot_generation}",
+		)
+	]
+	if slot["lane_source"] == "CPU":
+		cpu_standard = cpu["max_storage_pcie_standard"]
+		limits.append(
+			(cpu_standard, f"the {cpu['name']}'s M.2 lanes support up to {cpu_standard}")
+		)
+	return limits
+
+
+def plan_storage(cpu, storage_items, motherboard):
+	"""Place the selected drives on a motherboard.
+
+	M.2 drives go into M.2 slots (SATA M.2 drives only into SATA-capable slots,
+	which can disable SATA ports); other drives use SATA ports. Every slot
+	assignment is tried, preferring the plan that connects the most drives, then
+	the one with the least PCIe slowdown, then the one disabling fewest SATA ports.
+	"""
+	m2_drives = [item for item in storage_items if is_m2_drive(item)]
+	cabled_drives = [item for item in storage_items if not is_m2_drive(item)]
+	slots = motherboard["m2_slots"]
+	best = None
+
+	def assignments(slot_index, used):
+		# Filling slots is tried first, so ties keep drives in the board's
+		# primary (lowest-numbered) slots.
+		if slot_index == len(slots):
+			yield []
+			return
+		for drive_index in range(len(m2_drives)):
+			if drive_index not in used:
+				for rest in assignments(slot_index + 1, used | {drive_index}):
+					yield [drive_index, *rest]
+		for rest in assignments(slot_index + 1, used):
+			yield [None, *rest]
+
+	for assignment in assignments(0, frozenset()):
+		placements = []
+		disabled_sata_ports = 0
+		pcie_shortfall = 0.0
+		valid = True
+		for slot, drive_index in zip(slots, assignment):
+			if drive_index is None:
+				continue
+			item = m2_drives[drive_index]
+			pcie_standard = drive_pcie_standard(item)
+			if pcie_standard is None:
+				if not slot.get("supports_sata", False):
+					valid = False
+					break
+				disabled_sata_ports += slot.get("sata_ports_disabled_in_sata_mode", 0)
+				placements.append({"item": item, "slot": slot, "limits": []})
+				continue
+			limits = m2_slot_limits(cpu, motherboard, slot)
+			effective_generation, _ = pcie_link_limit(pcie_standard, limits)
+			pcie_shortfall += pcie_generation(pcie_standard) - effective_generation
+			placements.append({"item": item, "slot": slot, "limits": limits})
+		if not valid:
+			continue
+		placed = {index for index in assignment if index is not None}
+		available_sata_ports = max(motherboard["sata_ports"] - disabled_sata_ports, 0)
+		unplaced_m2 = [
+			item for index, item in enumerate(m2_drives) if index not in placed
+		]
+		sata_overflow = max(len(cabled_drives) - available_sata_ports, 0)
+		score = (len(unplaced_m2) + sata_overflow, pcie_shortfall, disabled_sata_ports)
+		if best is None or score < best["score"]:
+			best = {
+				"score": score,
+				"placements": placements,
+				"unplaced_m2": unplaced_m2,
+				"cabled_drives": cabled_drives,
+				"available_sata_ports": available_sata_ports,
+				"disabled_sata_ports": disabled_sata_ports,
+				"sata_overflow": sata_overflow,
+				"unconnected_count": len(unplaced_m2) + sata_overflow,
+			}
+	return best
+
+
 def storage_pcie_check(cpu, storage_items, motherboard=None):
 	check = {
 		"code": "storage_pcie_generation",
 		"components": ["storage", "cpu", "motherboard"],
 	}
-	pcie_drives = []
-	for item in storage_items:
-		standards = [
-			standard
-			for standard in item.get("pcie_compatibility", [])
-			if pcie_generation(standard) is not None
-		]
-		if standards:
-			pcie_drives.append((item, max(standards, key=pcie_generation)))
-	if not pcie_drives:
+	if not any(drive_pcie_standard(item) for item in storage_items):
 		return {
 			**check,
 			"status": "pass",
 			"message": "No selected storage drive uses PCIe.",
 		}
-	cpu_standard = cpu["max_storage_pcie_standard"]
-	cpu_limit = (
-		cpu_standard,
-		f"the {cpu['name']}'s M.2 lanes support up to {cpu_standard}",
-	)
 	if motherboard is None:
-		slots = [(None, [cpu_limit])] * len(pcie_drives)
+		cpu_standard = cpu["max_storage_pcie_standard"]
+		cpu_limits = [
+			(cpu_standard, f"the {cpu['name']}'s M.2 lanes support up to {cpu_standard}")
+		]
+		placements = [
+			{"item": item, "slot": None, "limits": cpu_limits}
+			for item in storage_items
+			if drive_pcie_standard(item)
+		]
 	else:
-		slots = []
-		for slot in motherboard["m2_slots"]:
-			slot_generation = format_pcie_generation(
-				pcie_generation(slot["pcie_standard"])
-			)
-			limits = [
-				(
-					slot["pcie_standard"],
-					f"{slot['name']} on the {motherboard['name']} is {slot_generation}",
-				)
-			]
-			if slot["lane_source"] == "CPU":
-				limits.append(cpu_limit)
-			slots.append((slot["name"], limits))
-		# Fastest drives go in the fastest effective slots; sort is stable, so
-		# equal slots keep the board's slot order.
-		slots.sort(
-			key=lambda slot: min(pcie_generation(standard) for standard, _ in slot[1]),
-			reverse=True,
-		)
-	pcie_drives.sort(key=lambda drive: pcie_generation(drive[1]), reverse=True)
+		# Drives without a free M.2 slot are reported by storage_interface_check.
+		placements = plan_storage(cpu, storage_items, motherboard)["placements"]
 	issues = []
-	for index, (item, standard) in enumerate(pcie_drives):
-		if index >= len(slots):
-			# Drives without a free M.2 slot are reported by storage_interface_check.
+	for placement in placements:
+		item = placement["item"]
+		standard = drive_pcie_standard(item)
+		if standard is None:
 			continue
-		slot_name, limits = slots[index]
-		effective_generation, reasons = pcie_link_limit(standard, limits)
+		effective_generation, reasons = pcie_link_limit(standard, placement["limits"])
 		if reasons:
-			location = f" in {slot_name}" if slot_name else ""
+			location = f" in {placement['slot']['name']}" if placement["slot"] else ""
 			issues.append(
 				f"{item['name']} ({standard}) will run at "
 				f"{format_pcie_generation(effective_generation)}{location} because "
@@ -827,11 +908,7 @@ def storage_pcie_check(cpu, storage_items, motherboard=None):
 	}
 
 
-def plural(count, noun):
-	return f"{count} {noun}{'' if count == 1 else 's'}"
-
-
-def storage_interface_check(storage_items, motherboard=None):
+def storage_interface_check(cpu, storage_items, motherboard=None):
 	check = {
 		"code": "storage_motherboard_interface",
 		"components": ["storage", "motherboard"],
@@ -842,20 +919,51 @@ def storage_interface_check(storage_items, motherboard=None):
 			"status": "blocked",
 			"message": "Storage connections cannot be checked until a compatible motherboard is available.",
 		}
-	sata_drives = [item for item in storage_items if "SATA" in item["type"]]
-	nvme_drives = [item for item in storage_items if "NVMe" in item["type"]]
-	sata_ports = motherboard["sata_ports"]
-	m2_slots = len(motherboard["m2_slots"])
+	plan = plan_storage(cpu, storage_items, motherboard)
+	m2_slot_count = len(motherboard["m2_slots"])
+	sata_m2_slot_count = sum(
+		1 for slot in motherboard["m2_slots"] if slot.get("supports_sata", False)
+	)
+	disabled_note = (
+		f" ({plural(plan['disabled_sata_ports'], 'port')} disabled by M.2 SATA drives)"
+		if plan["disabled_sata_ports"]
+		else ""
+	)
+	used_slot_names = {placement["slot"]["name"] for placement in plan["placements"]}
+	free_sata_m2_slots = [
+		slot["name"]
+		for slot in motherboard["m2_slots"]
+		if slot.get("supports_sata", False) and slot["name"] not in used_slot_names
+	]
 	issues = []
-	if len(sata_drives) > sata_ports:
+	for item in plan["unplaced_m2"]:
+		if drive_pcie_standard(item) is not None:
+			issues.append(
+				f"{item['name']} has no free M.2 slot; the {motherboard['name']} "
+				f"has {plural(m2_slot_count, 'M.2 slot')}"
+			)
+		elif free_sata_m2_slots:
+			issues.append(
+				f"{item['name']} would need {' or '.join(free_sata_m2_slots)}, which "
+				"disables SATA ports the other selected drives need"
+			)
+		elif sata_m2_slot_count:
+			issues.append(
+				f"{item['name']} needs a SATA-capable M.2 slot, but the "
+				f"{motherboard['name']}'s "
+				f"{plural(sata_m2_slot_count, 'SATA-capable M.2 slot')} "
+				f"{'is' if sata_m2_slot_count == 1 else 'are'} already in use"
+			)
+		else:
+			issues.append(
+				f"{item['name']} is an M.2 SATA drive, but the "
+				f"{motherboard['name']}'s M.2 slots are PCIe-only"
+			)
+	if plan["sata_overflow"]:
 		issues.append(
-			f"{plural(len(sata_drives), 'SATA drive')} selected but the "
-			f"{motherboard['name']} has {plural(sata_ports, 'SATA port')}"
-		)
-	if len(nvme_drives) > m2_slots:
-		issues.append(
-			f"{plural(len(nvme_drives), 'NVMe drive')} selected but the "
-			f"{motherboard['name']} has {plural(m2_slots, 'M.2 slot')}"
+			f"{plural(len(plan['cabled_drives']), 'SATA drive')} selected but the "
+			f"{motherboard['name']} has "
+			f"{plural(plan['available_sata_ports'], 'SATA port')} available{disabled_note}"
 		)
 	if issues:
 		return {
@@ -871,8 +979,9 @@ def storage_interface_check(storage_items, motherboard=None):
 		"status": "pass",
 		"message": (
 			f"The {motherboard['name']} has enough connections for the selected "
-			f"storage ({len(sata_drives)} of {plural(sata_ports, 'SATA port')}, "
-			f"{len(nvme_drives)} of {plural(m2_slots, 'M.2 slot')} used)."
+			f"storage ({len(plan['cabled_drives'])} of "
+			f"{plural(plan['available_sata_ports'], 'SATA port')}{disabled_note}, "
+			f"{len(plan['placements'])} of {plural(m2_slot_count, 'M.2 slot')} used)."
 		),
 	}
 
@@ -1085,8 +1194,14 @@ def generate_build(
 	selected_case = None
 	selected_psu = None
 	if compatible_motherboards:
+		# Prefer the cheapest board that can connect every selected drive.
+		storage_fitting_motherboards = [
+			motherboard
+			for motherboard in compatible_motherboards
+			if plan_storage(cpu, storage_items, motherboard)["unconnected_count"] == 0
+		]
 		selected_motherboard = min(
-			compatible_motherboards,
+			storage_fitting_motherboards or compatible_motherboards,
 			key=lambda motherboard: offer_total(offers, "motherboard", motherboard["id"]),
 		)
 		selected_part_total += offer_total(
@@ -1358,7 +1473,7 @@ def generate_build(
 		}
 	)
 	compatibility_checks.append(
-		storage_interface_check(storage_items, selected_motherboard)
+		storage_interface_check(cpu, storage_items, selected_motherboard)
 	)
 	compatible = not any(
 		check["status"] == "fail" for check in compatibility_checks
