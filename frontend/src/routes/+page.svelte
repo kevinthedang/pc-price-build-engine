@@ -22,6 +22,7 @@
 		efficiency_core_base_clock_mhz?: number;
 		max_clock_mhz: number;
 		max_clock_type: 'Max boost' | 'Max turbo';
+		max_pcie_standard: string;
 		tdp: number;
 		stock_cooler_included: boolean;
 	}
@@ -625,6 +626,10 @@
 							<div>
 								<dt>Socket</dt>
 								<dd>{selectedCpuDetails.socket}</dd>
+							</div>
+							<div>
+								<dt>Max PCIe</dt>
+								<dd>{selectedCpuDetails.max_pcie_standard}</dd>
 							</div>
 							<div>
 								<dt>TDP</dt>

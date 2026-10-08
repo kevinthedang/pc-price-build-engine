@@ -76,8 +76,20 @@ class DatabaseSchemaTests(unittest.TestCase):
                 "efficiency_core_base_clock_mhz",
                 "max_clock_mhz",
                 "max_clock_type",
+                "max_pcie_standard",
             }.issubset(columns)
         )
+
+    def test_cpu_catalog_records_max_pcie_standard(self):
+        cpus = json.loads(
+            (PROJECT_ROOT / "data" / "cpus.json").read_text(encoding="utf-8")
+        )
+        for cpu in cpus:
+            with self.subTest(cpu=cpu["name"]):
+                self.assertRegex(cpu.get("max_pcie_standard", ""), r"^PCIe \d\.0$")
+
+        ryzen_5500 = next(cpu for cpu in cpus if cpu["name"] == "Ryzen 5 5500")
+        self.assertEqual(ryzen_5500["max_pcie_standard"], "PCIe 3.0")
 
     def test_gpu_specs_includes_clocks_pcie_and_power_fields(self):
         columns = {

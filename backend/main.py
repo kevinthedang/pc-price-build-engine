@@ -476,6 +476,7 @@ def format_build_report(
 			"CPU:",
 			cpu["name"],
 			f"Socket: {cpu['socket']}",
+			f"Max PCIe standard: {cpu['max_pcie_standard']}",
 			f"TDP: {cpu['tdp']} W",
 			f"Stock cooler included: {'Yes' if cpu['stock_cooler_included'] else 'No'}",
 			"",
