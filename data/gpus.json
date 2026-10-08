@@ -4,49 +4,164 @@
     "name": "Gigabyte GeForce RTX 4060 WINDFORCE OC 8G",
     "vram": 8,
     "tdp": 115,
-    "length_mm": 192
+    "length_mm": 192,
+    "boost_clock_mhz": 2475,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 450,
+    "pcie_slot_width": 2,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 2
+        },
+        {
+            "type": "DisplayPort",
+            "version": "1.4a",
+            "count": 2
+        }
+    ]
   },
   {
     "id": "gpu-000000002",
     "name": "Gigabyte GeForce RTX 4070 SUPER WINDFORCE OC 12G",
     "vram": 12,
     "tdp": 220,
-    "length_mm": 261
+    "length_mm": 261,
+    "boost_clock_mhz": 2505,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 700,
+    "pcie_slot_width": 2.5,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 1
+        },
+        {
+            "type": "DisplayPort",
+            "version": "1.4a",
+            "count": 3
+        }
+    ]
   },
   {
     "id": "gpu-000000003",
     "name": "Gigabyte GeForce RTX 4080 SUPER GAMING OC 16G",
     "vram": 16,
     "tdp": 320,
-    "length_mm": 342
+    "length_mm": 342,
+    "boost_clock_mhz": 2595,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 850,
+    "pcie_slot_width": 3.7,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 1
+        },
+        {
+            "type": "DisplayPort",
+            "version": "1.4a",
+            "count": 3
+        }
+    ]
   },
   {
     "id": "gpu-000000004",
     "name": "Gigabyte GeForce RTX 4090 WINDFORCE V2 24G",
     "vram": 24,
     "tdp": 450,
-    "length_mm": 331
+    "length_mm": 331,
+    "boost_clock_mhz": 2520,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 850,
+    "pcie_slot_width": 2.7,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 1
+        },
+        {
+            "type": "DisplayPort",
+            "version": "1.4a",
+            "count": 3
+        }
+    ]
   },
   {
     "id": "gpu-000000005",
     "name": "SAPPHIRE PULSE Radeon RX 7600 8GB",
     "vram": 8,
     "tdp": 165,
-    "length_mm": 240
+    "length_mm": 240,
+    "game_clock_mhz": 2355,
+    "boost_clock_mhz": 2755,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 550,
+    "pcie_slot_width": 2,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 1
+        },
+        {
+            "type": "DisplayPort",
+            "version": "2.1",
+            "count": 3
+        }
+    ]
   },
   {
     "id": "gpu-000000006",
     "name": "SAPPHIRE PULSE Radeon RX 7800 XT 16GB",
     "vram": 16,
     "tdp": 263,
-    "length_mm": 280
+    "length_mm": 280,
+    "game_clock_mhz": 2124,
+    "boost_clock_mhz": 2430,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 700,
+    "pcie_slot_width": 2.5,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 2
+        },
+        {
+            "type": "DisplayPort",
+            "version": "2.1",
+            "count": 2
+        }
+    ]
   },
   {
     "id": "gpu-000000007",
     "name": "SAPPHIRE PULSE Radeon RX 7900 XTX 24GB",
     "vram": 24,
     "tdp": 355,
-    "length_mm": 313
+    "length_mm": 313,
+    "game_clock_mhz": 2330,
+    "boost_clock_mhz": 2525,
+    "pcie_standard": "PCIe 4.0",
+    "recommended_psu_w": 800,
+    "pcie_slot_width": 2.7,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1a",
+            "count": 2
+        },
+        {
+            "type": "DisplayPort",
+            "version": "2.1",
+            "count": 2
+        }
+    ]
   },
   {
     "id": "gpu-000000008",

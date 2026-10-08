@@ -127,7 +127,8 @@ class MotherboardCompatibilityTests(unittest.TestCase):
             "Compatibility:",
         ]
 
-        section_positions = [result.stdout.index(name) for name in section_names]
+        report_lines = result.stdout.splitlines()
+        section_positions = [report_lines.index(name) for name in section_names]
         self.assertEqual(section_positions, sorted(section_positions))
 
 

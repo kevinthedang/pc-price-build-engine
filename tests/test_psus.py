@@ -29,7 +29,7 @@ class PsuRecommendationTests(unittest.TestCase):
             check=True,
         )
 
-        self.assertIn("Estimated minimum: 770 W", result.stdout)
+        self.assertIn("Estimated minimum: 850 W", result.stdout)
         self.assertIn("Corsair RM850x (2021)", result.stdout)
         self.assertNotIn("Corsair RM750x (2021)", result.stdout)
         self.assertNotIn("MSI MAG A650BN", result.stdout)
