@@ -477,6 +477,14 @@ def format_build_report(
 			cpu["name"],
 			f"Socket: {cpu['socket']}",
 			f"Max PCIe standard: {cpu['max_pcie_standard']}",
+		]
+	)
+	lines.extend(
+		f"Max memory speed: {speed['memory_type']}-{speed['max_speed_mhz']}"
+		for speed in cpu["max_memory_speeds"]
+	)
+	lines.extend(
+		[
 			f"TDP: {cpu['tdp']} W",
 			f"Stock cooler included: {'Yes' if cpu['stock_cooler_included'] else 'No'}",
 			"",

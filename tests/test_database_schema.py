@@ -47,6 +47,7 @@ class DatabaseSchemaTests(unittest.TestCase):
 
         self.assertIn("products", tables)
         self.assertIn("cpu_specs", tables)
+        self.assertIn("cpu_memory_speeds", tables)
         self.assertIn("gpu_specs", tables)
         self.assertIn("gpu_display_outputs", tables)
         self.assertIn("case_specs", tables)
@@ -90,6 +91,52 @@ class DatabaseSchemaTests(unittest.TestCase):
 
         ryzen_5500 = next(cpu for cpu in cpus if cpu["name"] == "Ryzen 5 5500")
         self.assertEqual(ryzen_5500["max_pcie_standard"], "PCIe 3.0")
+
+    def test_cpu_memory_speeds_are_unique_per_memory_type(self):
+        columns = {
+            row[1]
+            for row in self.connection.execute(
+                "PRAGMA table_info(cpu_memory_speeds)"
+            )
+        }
+        self.assertTrue(
+            {"product_id", "memory_type", "max_speed_mhz"}.issubset(columns)
+        )
+
+        self.connection.execute(
+            "INSERT INTO products (id, product_type, name) "
+            "VALUES ('cpu-test', 'cpu', 'Test CPU')"
+        )
+        insert = (
+            "INSERT INTO cpu_memory_speeds (product_id, memory_type, max_speed_mhz) "
+            "VALUES ('cpu-test', 'DDR5', ?)"
+        )
+        self.connection.execute(insert, (5600,))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.connection.execute(insert, (4800,))
+
+    def test_cpu_catalog_records_max_memory_speed_per_type(self):
+        cpus = json.loads(
+            (PROJECT_ROOT / "data" / "cpus.json").read_text(encoding="utf-8")
+        )
+        for cpu in cpus:
+            with self.subTest(cpu=cpu["name"]):
+                speeds = cpu.get("max_memory_speeds")
+                self.assertTrue(speeds)
+                memory_types = [speed["memory_type"] for speed in speeds]
+                self.assertEqual(len(memory_types), len(set(memory_types)))
+                for speed in speeds:
+                    self.assertIn(speed["memory_type"], {"DDR4", "DDR5"})
+                    self.assertGreater(speed["max_speed_mhz"], 0)
+
+        i5_13600k = next(cpu for cpu in cpus if cpu["name"] == "Core i5-13600K")
+        self.assertEqual(
+            i5_13600k["max_memory_speeds"],
+            [
+                {"memory_type": "DDR5", "max_speed_mhz": 5600},
+                {"memory_type": "DDR4", "max_speed_mhz": 3200},
+            ],
+        )
 
     def test_gpu_specs_includes_clocks_pcie_and_power_fields(self):
         columns = {

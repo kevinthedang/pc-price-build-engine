@@ -4,6 +4,12 @@
     "socket": "AM4",
     "name": "Ryzen 5 5500",
     "max_pcie_standard": "PCIe 3.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR4",
+        "max_speed_mhz": 3200
+      }
+    ],
     "core_count": 6,
     "thread_count": 12,
     "base_clock_mhz": 3600,
@@ -17,6 +23,12 @@
     "socket": "AM4",
     "name": "Ryzen 5 5600",
     "max_pcie_standard": "PCIe 4.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR4",
+        "max_speed_mhz": 3200
+      }
+    ],
     "core_count": 6,
     "thread_count": 12,
     "base_clock_mhz": 3500,
@@ -30,6 +42,12 @@
     "socket": "AM4",
     "name": "Ryzen 5 5600X",
     "max_pcie_standard": "PCIe 4.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR4",
+        "max_speed_mhz": 3200
+      }
+    ],
     "core_count": 6,
     "thread_count": 12,
     "base_clock_mhz": 3700,
@@ -43,6 +61,12 @@
     "socket": "AM4",
     "name": "Ryzen 7 5800X3D",
     "max_pcie_standard": "PCIe 4.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR4",
+        "max_speed_mhz": 3200
+      }
+    ],
     "core_count": 8,
     "thread_count": 16,
     "base_clock_mhz": 3400,
@@ -56,6 +80,16 @@
     "socket": "LGA1700",
     "name": "Core i5-12400F",
     "max_pcie_standard": "PCIe 5.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR5",
+        "max_speed_mhz": 4800
+      },
+      {
+        "memory_type": "DDR4",
+        "max_speed_mhz": 3200
+      }
+    ],
     "core_count": 6,
     "thread_count": 12,
     "performance_core_count": 6,
@@ -70,6 +104,16 @@
     "socket": "LGA1700",
     "name": "Core i5-13600K",
     "max_pcie_standard": "PCIe 5.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR5",
+        "max_speed_mhz": 5600
+      },
+      {
+        "memory_type": "DDR4",
+        "max_speed_mhz": 3200
+      }
+    ],
     "core_count": 14,
     "thread_count": 20,
     "performance_core_count": 6,
@@ -86,6 +130,12 @@
     "socket": "AM5",
     "name": "Ryzen 5 7600",
     "max_pcie_standard": "PCIe 5.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR5",
+        "max_speed_mhz": 5200
+      }
+    ],
     "core_count": 6,
     "thread_count": 12,
     "base_clock_mhz": 3800,
@@ -99,6 +149,12 @@
     "socket": "AM5",
     "name": "Ryzen 7 7700",
     "max_pcie_standard": "PCIe 5.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR5",
+        "max_speed_mhz": 5200
+      }
+    ],
     "core_count": 8,
     "thread_count": 16,
     "base_clock_mhz": 3800,
@@ -112,6 +168,12 @@
     "socket": "AM5",
     "name": "Ryzen 7 7800X3D",
     "max_pcie_standard": "PCIe 5.0",
+    "max_memory_speeds": [
+      {
+        "memory_type": "DDR5",
+        "max_speed_mhz": 5200
+      }
+    ],
     "core_count": 8,
     "thread_count": 16,
     "base_clock_mhz": 4200,

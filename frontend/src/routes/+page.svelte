@@ -23,8 +23,14 @@
 		max_clock_mhz: number;
 		max_clock_type: 'Max boost' | 'Max turbo';
 		max_pcie_standard: string;
+		max_memory_speeds: CpuMemorySpeed[];
 		tdp: number;
 		stock_cooler_included: boolean;
+	}
+
+	interface CpuMemorySpeed {
+		memory_type: string;
+		max_speed_mhz: number;
 	}
 
 	interface GpuCatalogItem extends CatalogItem {
@@ -630,6 +636,15 @@
 							<div>
 								<dt>Max PCIe</dt>
 								<dd>{selectedCpuDetails.max_pcie_standard}</dd>
+							</div>
+							<div>
+								<dt>Max memory speed</dt>
+								<dd>
+									{#each selectedCpuDetails.max_memory_speeds as speed, index (speed.memory_type)}
+										{#if index > 0}<br />{/if}
+										{speed.memory_type}-{speed.max_speed_mhz}
+									{/each}
+								</dd>
 							</div>
 							<div>
 								<dt>TDP</dt>
