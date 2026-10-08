@@ -117,7 +117,7 @@
 	interface CompatibilityCheck {
 		code: string;
 		components: string[];
-		status: 'pass' | 'fail' | 'blocked' | 'unknown';
+		status: 'pass' | 'warning' | 'fail' | 'blocked' | 'unknown';
 		message: string;
 	}
 
@@ -1035,7 +1035,8 @@
 			<p>
 				Compatibility: {buildResult.compatible
 					? 'No known compatibility failures'
-					: 'Some compatibility checks failed'}
+					: 'Some compatibility checks failed'}{#if buildResult.compatibility_checks.some((check) => check.status === 'warning')}
+					{' '}(see warnings below){/if}
 			</p>
 			<ul class="compatibility-checks">
 				{#each buildResult.compatibility_checks as check (check.code)}
@@ -1444,6 +1445,7 @@
 		color: #b42318;
 	}
 
+	.compatibility-checks .warning,
 	.compatibility-checks .unknown,
 	.compatibility-checks .blocked {
 		color: #805500;

@@ -182,7 +182,26 @@ class BuildApiTests(unittest.TestCase):
         self.assertIn("Memory: Not priced (generic profile)", build["report"])
         checks = {check["code"]: check for check in build["compatibility_checks"]}
         self.assertEqual(checks["memory_motherboard_slots"]["status"], "pass")
-        self.assertEqual(checks["memory_speed"]["status"], "unknown")
+        self.assertEqual(checks["memory_speed"]["status"], "pass")
+
+    def test_memory_above_cpu_rated_speed_is_a_warning_not_a_failure(self):
+        response = self.client.post(
+            "/api/builds/generate",
+            json={
+                "cpu_id": "cpu-000000007",
+                "gpu_id": "gpu-000000001",
+                "storage_id": "storage-000000001",
+                "memory_id": "memory-000000007",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        build = response.json()
+        checks = {check["code"]: check for check in build["compatibility_checks"]}
+        self.assertEqual(checks["memory_speed"]["status"], "warning")
+        self.assertIn("DDR5-5200", checks["memory_speed"]["message"])
+        self.assertTrue(build["compatible"])
+        self.assertIn("Warning: The 6000 MHz DDR5 memory", build["report"])
 
     def test_generation_rejects_generic_memory_speed_from_another_generation(self):
         response = self.client.post(

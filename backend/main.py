@@ -453,6 +453,7 @@ def format_build_report(
 	selected_motherboard=None,
 	selected_case=None,
 	selected_psu=None,
+	warnings=(),
 ):
 	separator = "================================="
 	lines = [
@@ -659,10 +660,50 @@ def format_build_report(
 			"",
 			"Compatibility:",
 			"PASS" if compatible else "FAIL",
-			separator,
 		]
 	)
+	lines.extend(f"Warning: {warning}" for warning in warnings)
+	lines.append(separator)
 	return "\n".join(lines)
+
+
+def memory_speed_check(cpu, memory):
+	rated_speeds = {
+		speed["memory_type"]: speed["max_speed_mhz"]
+		for speed in cpu["max_memory_speeds"]
+	}
+	memory_type = memory["memory_type"]
+	memory_speed_mhz = memory["speed_mhz"]
+	check = {"code": "memory_speed", "components": ["memory", "cpu"]}
+	if memory_type not in rated_speeds:
+		return {
+			**check,
+			"status": "blocked",
+			"message": (
+				f"Memory speed cannot be checked because the {cpu['name']} "
+				f"has no rated {memory_type} speed."
+			),
+		}
+	cpu_max_mhz = rated_speeds[memory_type]
+	if memory_speed_mhz > cpu_max_mhz:
+		return {
+			**check,
+			"status": "warning",
+			"message": (
+				f"The {memory_speed_mhz} MHz {memory_type} memory is above the "
+				f"{cpu['name']}'s rated maximum of {memory_type}-{cpu_max_mhz}. "
+				"Running it at its rated speed relies on an XMP/EXPO memory "
+				"overclock, and stability is not guaranteed."
+			),
+		}
+	return {
+		**check,
+		"status": "pass",
+		"message": (
+			f"The {memory_speed_mhz} MHz {memory_type} memory is within the "
+			f"{cpu['name']}'s rated maximum of {memory_type}-{cpu_max_mhz}."
+		),
+	}
 
 
 def generate_build(
@@ -985,17 +1026,7 @@ def generate_build(
 				"message": "Memory slot compatibility cannot be checked because no motherboard supports this memory type.",
 			}
 		)
-	compatibility_checks.append(
-		{
-			"code": "memory_speed",
-			"components": ["memory", "cpu", "motherboard"],
-			"status": "unknown",
-			"message": (
-				f"{memory['speed_mhz']} MHz is the selected speed preference; "
-				"CPU and motherboard speed limits are not modeled."
-			),
-		}
-	)
+	compatibility_checks.append(memory_speed_check(cpu, memory))
 	if form_factor is None:
 		compatibility_checks.append(
 			{
@@ -1143,6 +1174,11 @@ def generate_build(
 		selected_motherboard=selected_motherboard,
 		selected_case=selected_case,
 		selected_psu=selected_psu,
+		warnings=[
+			check["message"]
+			for check in compatibility_checks
+			if check["status"] == "warning"
+		],
 	)
 	return {
 		"selected_parts": {
