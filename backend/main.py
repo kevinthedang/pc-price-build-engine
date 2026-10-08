@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -547,7 +548,9 @@ def format_build_report(
 			lines.append(
 				f"- {motherboard['id']}: {motherboard['name']} "
 				f"({motherboard['socket']}, {motherboard['form_factor']}, "
-				f"{motherboard['memory_type']})"
+				f"{motherboard['memory_type']}, "
+				f"{plural(motherboard['sata_ports'], 'SATA port')}, "
+				f"{plural(len(motherboard['m2_slots']), 'M.2 slot')})"
 			)
 	else:
 		lines.append("- No compatible motherboards found")
@@ -665,6 +668,213 @@ def format_build_report(
 	lines.extend(f"Warning: {warning}" for warning in warnings)
 	lines.append(separator)
 	return "\n".join(lines)
+
+
+def pcie_generation(standard):
+	match = re.search(r"PCIe\s*(\d+(?:\.\d+)?)", standard or "")
+	return float(match.group(1)) if match else None
+
+
+def format_pcie_generation(generation):
+	return f"PCIe {generation:.1f}"
+
+
+def pcie_link_limit(device_standard, limits):
+	"""Return the effective generation and the reasons it is below the device's own.
+
+	limits is a list of (pcie_standard, reason) pairs for each component in the
+	link path; the slowest one sets the effective generation.
+	"""
+	device_generation = pcie_generation(device_standard)
+	effective_generation = min(
+		[device_generation, *(pcie_generation(standard) for standard, _ in limits)]
+	)
+	reasons = [
+		reason
+		for standard, reason in limits
+		if effective_generation < device_generation
+		and pcie_generation(standard) == effective_generation
+	]
+	return effective_generation, reasons
+
+
+def gpu_pcie_check(cpu, gpu, motherboard=None):
+	check = {
+		"code": "gpu_pcie_generation",
+		"components": ["gpu", "cpu", "motherboard"],
+	}
+	gpu_standard = gpu.get("pcie_standard")
+	if pcie_generation(gpu_standard) is None:
+		return {
+			**check,
+			"status": "unknown",
+			"message": (
+				f"The {gpu['name']}'s PCIe generation is not listed, so its PCIe "
+				"link speed cannot be checked."
+			),
+		}
+	cpu_standard = cpu["max_pcie_standard"]
+	limits = [(cpu_standard, f"the {cpu['name']} supports up to {cpu_standard}")]
+	if motherboard is not None:
+		slot_standard = motherboard["pcie_x16_standard"]
+		limits.append(
+			(
+				slot_standard,
+				f"the {motherboard['name']}'s x16 slot is {slot_standard}",
+			)
+		)
+	effective_generation, reasons = pcie_link_limit(gpu_standard, limits)
+	if reasons:
+		return {
+			**check,
+			"status": "warning",
+			"message": (
+				f"The {gpu_standard} {gpu['name']} will run at "
+				f"{format_pcie_generation(effective_generation)} because "
+				f"{' and '.join(reasons)}."
+			),
+		}
+	board = f" and {motherboard['name']}" if motherboard is not None else ""
+	return {
+		**check,
+		"status": "pass",
+		"message": (
+			f"The {gpu_standard} GPU runs at its full PCIe generation with the "
+			f"{cpu['name']}{board}."
+		),
+	}
+
+
+def storage_pcie_check(cpu, storage_items, motherboard=None):
+	check = {
+		"code": "storage_pcie_generation",
+		"components": ["storage", "cpu", "motherboard"],
+	}
+	pcie_drives = []
+	for item in storage_items:
+		standards = [
+			standard
+			for standard in item.get("pcie_compatibility", [])
+			if pcie_generation(standard) is not None
+		]
+		if standards:
+			pcie_drives.append((item, max(standards, key=pcie_generation)))
+	if not pcie_drives:
+		return {
+			**check,
+			"status": "pass",
+			"message": "No selected storage drive uses PCIe.",
+		}
+	cpu_standard = cpu["max_storage_pcie_standard"]
+	cpu_limit = (
+		cpu_standard,
+		f"the {cpu['name']}'s M.2 lanes support up to {cpu_standard}",
+	)
+	if motherboard is None:
+		slots = [(None, [cpu_limit])] * len(pcie_drives)
+	else:
+		slots = []
+		for slot in motherboard["m2_slots"]:
+			slot_generation = format_pcie_generation(
+				pcie_generation(slot["pcie_standard"])
+			)
+			limits = [
+				(
+					slot["pcie_standard"],
+					f"{slot['name']} on the {motherboard['name']} is {slot_generation}",
+				)
+			]
+			if slot["lane_source"] == "CPU":
+				limits.append(cpu_limit)
+			slots.append((slot["name"], limits))
+		# Fastest drives go in the fastest effective slots; sort is stable, so
+		# equal slots keep the board's slot order.
+		slots.sort(
+			key=lambda slot: min(pcie_generation(standard) for standard, _ in slot[1]),
+			reverse=True,
+		)
+	pcie_drives.sort(key=lambda drive: pcie_generation(drive[1]), reverse=True)
+	issues = []
+	for index, (item, standard) in enumerate(pcie_drives):
+		if index >= len(slots):
+			# Drives without a free M.2 slot are reported by storage_interface_check.
+			continue
+		slot_name, limits = slots[index]
+		effective_generation, reasons = pcie_link_limit(standard, limits)
+		if reasons:
+			location = f" in {slot_name}" if slot_name else ""
+			issues.append(
+				f"{item['name']} ({standard}) will run at "
+				f"{format_pcie_generation(effective_generation)}{location} because "
+				f"{' and '.join(reasons)}"
+			)
+	if issues:
+		return {
+			**check,
+			"status": "warning",
+			"message": "; ".join(issues) + ".",
+		}
+	location = (
+		f" in the {motherboard['name']}'s M.2 slots" if motherboard is not None else ""
+	)
+	return {
+		**check,
+		"status": "pass",
+		"message": (
+			f"All selected PCIe storage runs at its full PCIe generation{location} "
+			f"with the {cpu['name']}."
+		),
+	}
+
+
+def plural(count, noun):
+	return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+def storage_interface_check(storage_items, motherboard=None):
+	check = {
+		"code": "storage_motherboard_interface",
+		"components": ["storage", "motherboard"],
+	}
+	if motherboard is None:
+		return {
+			**check,
+			"status": "blocked",
+			"message": "Storage connections cannot be checked until a compatible motherboard is available.",
+		}
+	sata_drives = [item for item in storage_items if "SATA" in item["type"]]
+	nvme_drives = [item for item in storage_items if "NVMe" in item["type"]]
+	sata_ports = motherboard["sata_ports"]
+	m2_slots = len(motherboard["m2_slots"])
+	issues = []
+	if len(sata_drives) > sata_ports:
+		issues.append(
+			f"{plural(len(sata_drives), 'SATA drive')} selected but the "
+			f"{motherboard['name']} has {plural(sata_ports, 'SATA port')}"
+		)
+	if len(nvme_drives) > m2_slots:
+		issues.append(
+			f"{plural(len(nvme_drives), 'NVMe drive')} selected but the "
+			f"{motherboard['name']} has {plural(m2_slots, 'M.2 slot')}"
+		)
+	if issues:
+		return {
+			**check,
+			"status": "warning",
+			"message": (
+				"; ".join(issues)
+				+ ". Not every selected drive can be connected without an add-in card."
+			),
+		}
+	return {
+		**check,
+		"status": "pass",
+		"message": (
+			f"The {motherboard['name']} has enough connections for the selected "
+			f"storage ({len(sata_drives)} of {plural(sata_ports, 'SATA port')}, "
+			f"{len(nvme_drives)} of {plural(m2_slots, 'M.2 slot')} used)."
+		),
+	}
 
 
 def memory_speed_check(cpu, memory):
@@ -1027,6 +1237,10 @@ def generate_build(
 			}
 		)
 	compatibility_checks.append(memory_speed_check(cpu, memory))
+	compatibility_checks.append(gpu_pcie_check(cpu, gpu, selected_motherboard))
+	compatibility_checks.append(
+		storage_pcie_check(cpu, storage_items, selected_motherboard)
+	)
 	if form_factor is None:
 		compatibility_checks.append(
 			{
@@ -1144,15 +1358,7 @@ def generate_build(
 		}
 	)
 	compatibility_checks.append(
-		{
-			"code": "storage_motherboard_interface",
-			"components": ["storage", "motherboard"],
-			"status": "unknown",
-			"message": (
-				"Storage interface compatibility is not verified because storage "
-				"interface and motherboard slot specifications are not yet modeled."
-			),
-		}
+		storage_interface_check(storage_items, selected_motherboard)
 	)
 	compatible = not any(
 		check["status"] == "fail" for check in compatibility_checks

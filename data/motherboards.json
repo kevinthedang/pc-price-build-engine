@@ -7,7 +7,21 @@
         "memory_type": "DDR4",
         "memory_slots": 4,
         "max_memory_gb": 128,
-        "wifi": false
+        "wifi": false,
+        "sata_ports": 6,
+        "pcie_x16_standard": "PCIe 4.0",
+        "m2_slots": [
+            {
+                "name": "M.2_1",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M.2_2",
+                "pcie_standard": "PCIe 3.0 x4",
+                "lane_source": "Chipset"
+            }
+        ]
     },
     {
         "id": "mb-000000002",
@@ -17,7 +31,21 @@
         "memory_type": "DDR4",
         "memory_slots": 4,
         "max_memory_gb": 128,
-        "wifi": true
+        "wifi": true,
+        "sata_ports": 6,
+        "pcie_x16_standard": "PCIe 4.0",
+        "m2_slots": [
+            {
+                "name": "M2_1",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M2_2",
+                "pcie_standard": "PCIe 3.0 x4",
+                "lane_source": "Chipset"
+            }
+        ]
     },
     {
         "id": "mb-000000003",
@@ -27,7 +55,21 @@
         "memory_type": "DDR4",
         "memory_slots": 4,
         "max_memory_gb": 128,
-        "wifi": true
+        "wifi": true,
+        "sata_ports": 4,
+        "pcie_x16_standard": "PCIe 4.0",
+        "m2_slots": [
+            {
+                "name": "M2_1",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M2_2",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "Chipset"
+            }
+        ]
     },
     {
         "id": "mb-000000004",
@@ -37,7 +79,21 @@
         "memory_type": "DDR5",
         "memory_slots": 2,
         "max_memory_gb": 96,
-        "wifi": true
+        "wifi": true,
+        "sata_ports": 4,
+        "pcie_x16_standard": "PCIe 5.0",
+        "m2_slots": [
+            {
+                "name": "M.2_1",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M.2_2",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "Chipset"
+            }
+        ]
     },
     {
         "id": "mb-000000005",
@@ -47,7 +103,26 @@
         "memory_type": "DDR5",
         "memory_slots": 4,
         "max_memory_gb": 192,
-        "wifi": false
+        "wifi": false,
+        "sata_ports": 4,
+        "pcie_x16_standard": "PCIe 4.0",
+        "m2_slots": [
+            {
+                "name": "M.2_1",
+                "pcie_standard": "PCIe 5.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M.2_2",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M.2_3",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "Chipset"
+            }
+        ]
     },
     {
         "id": "mb-000000006",
@@ -57,7 +132,21 @@
         "memory_type": "DDR5",
         "memory_slots": 4,
         "max_memory_gb": 192,
-        "wifi": true
+        "wifi": true,
+        "sata_ports": 4,
+        "pcie_x16_standard": "PCIe 4.0",
+        "m2_slots": [
+            {
+                "name": "M2_1",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M2_2",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "Chipset"
+            }
+        ]
     },
     {
         "id": "mb-000000007",
@@ -67,6 +156,20 @@
         "memory_type": "DDR5",
         "memory_slots": 2,
         "max_memory_gb": 96,
-        "wifi": true
+        "wifi": true,
+        "sata_ports": 2,
+        "pcie_x16_standard": "PCIe 5.0",
+        "m2_slots": [
+            {
+                "name": "M.2_1",
+                "pcie_standard": "PCIe 5.0 x4",
+                "lane_source": "CPU"
+            },
+            {
+                "name": "M.2_2",
+                "pcie_standard": "PCIe 4.0 x4",
+                "lane_source": "CPU"
+            }
+        ]
     }
 ]

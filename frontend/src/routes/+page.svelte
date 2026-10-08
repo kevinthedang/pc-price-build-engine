@@ -23,6 +23,7 @@
 		max_clock_mhz: number;
 		max_clock_type: 'Max boost' | 'Max turbo';
 		max_pcie_standard: string;
+		max_storage_pcie_standard: string;
 		max_memory_speeds: CpuMemorySpeed[];
 		tdp: number;
 		stock_cooler_included: boolean;
@@ -635,7 +636,12 @@
 							</div>
 							<div>
 								<dt>Max PCIe</dt>
-								<dd>{selectedCpuDetails.max_pcie_standard}</dd>
+								<dd>
+									{selectedCpuDetails.max_pcie_standard}
+									{#if selectedCpuDetails.max_storage_pcie_standard !== selectedCpuDetails.max_pcie_standard}
+										(M.2: {selectedCpuDetails.max_storage_pcie_standard})
+									{/if}
+								</dd>
 							</div>
 							<div>
 								<dt>Max memory speed</dt>

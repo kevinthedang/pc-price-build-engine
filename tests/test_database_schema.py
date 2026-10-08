@@ -48,6 +48,7 @@ class DatabaseSchemaTests(unittest.TestCase):
         self.assertIn("products", tables)
         self.assertIn("cpu_specs", tables)
         self.assertIn("cpu_memory_speeds", tables)
+        self.assertIn("motherboard_m2_slots", tables)
         self.assertIn("gpu_specs", tables)
         self.assertIn("gpu_display_outputs", tables)
         self.assertIn("case_specs", tables)
@@ -78,6 +79,7 @@ class DatabaseSchemaTests(unittest.TestCase):
                 "max_clock_mhz",
                 "max_clock_type",
                 "max_pcie_standard",
+                "max_storage_pcie_standard",
             }.issubset(columns)
         )
 
@@ -91,6 +93,45 @@ class DatabaseSchemaTests(unittest.TestCase):
 
         ryzen_5500 = next(cpu for cpu in cpus if cpu["name"] == "Ryzen 5 5500")
         self.assertEqual(ryzen_5500["max_pcie_standard"], "PCIe 3.0")
+        self.assertEqual(ryzen_5500["max_storage_pcie_standard"], "PCIe 3.0")
+        i5_13600k = next(cpu for cpu in cpus if cpu["name"] == "Core i5-13600K")
+        self.assertEqual(i5_13600k["max_pcie_standard"], "PCIe 5.0")
+        self.assertEqual(i5_13600k["max_storage_pcie_standard"], "PCIe 4.0")
+
+    def test_motherboard_catalog_records_pcie_slots(self):
+        motherboards = json.loads(
+            (PROJECT_ROOT / "data" / "motherboards.json").read_text(encoding="utf-8")
+        )
+        for board in motherboards:
+            with self.subTest(motherboard=board["name"]):
+                self.assertRegex(board.get("pcie_x16_standard", ""), r"^PCIe \d\.0$")
+                self.assertIsInstance(board.get("sata_ports"), int)
+                self.assertGreaterEqual(board["sata_ports"], 0)
+                self.assertTrue(board.get("m2_slots"))
+                slot_names = [slot["name"] for slot in board["m2_slots"]]
+                self.assertEqual(len(slot_names), len(set(slot_names)))
+                for slot in board["m2_slots"]:
+                    self.assertRegex(slot["pcie_standard"], r"^PCIe \d\.0 x\d+$")
+                    self.assertIn(slot["lane_source"], {"CPU", "Chipset"})
+
+    def test_motherboard_m2_slots_table_rejects_unknown_lane_source(self):
+        self.connection.execute(
+            "INSERT INTO products (id, product_type, name) "
+            "VALUES ('mb-test', 'motherboard', 'Test Board')"
+        )
+        insert = (
+            "INSERT INTO motherboard_m2_slots "
+            "(product_id, slot_name, pcie_standard, lane_source) VALUES (?, ?, ?, ?)"
+        )
+        self.connection.execute(insert, ("mb-test", "M.2_1", "PCIe 4.0 x4", "CPU"))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.connection.execute(
+                insert, ("mb-test", "M.2_2", "PCIe 4.0 x4", "Southbridge")
+            )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.connection.execute(
+                insert, ("mb-test", "M.2_1", "PCIe 3.0 x4", "Chipset")
+            )
 
     def test_cpu_memory_speeds_are_unique_per_memory_type(self):
         columns = {

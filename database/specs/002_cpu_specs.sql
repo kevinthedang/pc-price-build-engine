@@ -18,6 +18,9 @@ CREATE TABLE cpu_specs (
     max_clock_type TEXT NOT NULL CHECK (max_clock_type IN ('Max boost', 'Max turbo')),
     -- Highest PCIe generation the CPU's lanes support, such as 'PCIe 4.0'.
     max_pcie_standard TEXT NOT NULL,
+    -- Highest PCIe generation of the CPU's M.2 storage lanes; can be lower than
+    -- max_pcie_standard (e.g. Intel 12th/13th gen: PCIe 5.0 graphics, PCIe 4.0 M.2).
+    max_storage_pcie_standard TEXT NOT NULL,
     tdp_w INTEGER NOT NULL CHECK (tdp_w > 0),
     -- SQLite stores booleans as integers: 0 = no, 1 = yes.
     stock_cooler_included INTEGER NOT NULL CHECK (stock_cooler_included IN (0, 1))

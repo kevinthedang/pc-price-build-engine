@@ -408,7 +408,7 @@ class BuildApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_generation_explains_known_failure_and_unmodeled_storage(self):
+    def test_generation_explains_known_failure_and_blocked_storage(self):
         response = self.client.post(
             "/api/builds/generate",
             json={
@@ -425,7 +425,7 @@ class BuildApiTests(unittest.TestCase):
         checks = {check["code"]: check for check in build["compatibility_checks"]}
         self.assertEqual(checks["memory_motherboard_type"]["status"], "fail")
         self.assertIn("DDR5", checks["memory_motherboard_type"]["message"])
-        self.assertEqual(checks["storage_motherboard_interface"]["status"], "unknown")
+        self.assertEqual(checks["storage_motherboard_interface"]["status"], "blocked")
 
 
 class WorkerCatalogCacheTests(unittest.TestCase):
