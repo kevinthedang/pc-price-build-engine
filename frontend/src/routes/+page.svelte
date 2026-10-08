@@ -345,7 +345,7 @@
 
 	function changeFormFactor(formFactor: string) {
 		selectedFormFactor = formFactor;
-		selectedMemoryKitId = '';
+		// updateBuildOptions clears the kit only if it no longer fits this form factor.
 		void updateBuildOptions();
 	}
 
