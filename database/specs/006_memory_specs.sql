@@ -1,4 +1,4 @@
--- Memory kit specifications. capacity_gb is per module, not the kit total.
+-- Memory kit specifications. capacity_gb is the total capacity of the kit.
 CREATE TABLE memory_specs (
     product_id TEXT PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
     memory_type TEXT NOT NULL,

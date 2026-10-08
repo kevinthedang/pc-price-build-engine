@@ -1,51 +1,77 @@
 [
-    {
-        "id": "gpu-000000001",
-        "name": "Gigabyte GeForce RTX 4060 WINDFORCE OC 8G",
-        "vram": 8,
-        "tdp": 115,
-        "length_mm": 192
-    },
-    {
-        "id": "gpu-000000002",
-        "name": "Gigabyte GeForce RTX 4070 SUPER WINDFORCE OC 12G",
-        "vram": 12,
-        "tdp": 220,
-        "length_mm": 261
-    },
-    {
-        "id": "gpu-000000003",
-        "name": "Gigabyte GeForce RTX 4080 SUPER GAMING OC 16G",
-        "vram": 16,
-        "tdp": 320,
-        "length_mm": 342
-    },
-    {
-        "id": "gpu-000000004",
-        "name": "Gigabyte GeForce RTX 4090 WINDFORCE V2 24G",
-        "vram": 24,
-        "tdp": 450,
-        "length_mm": 331
-    },
-    {
-        "id": "gpu-000000005",
-        "name": "SAPPHIRE PULSE Radeon RX 7600 8GB",
-        "vram": 8,
-        "tdp": 165,
-        "length_mm": 240
-    },
-    {
-        "id": "gpu-000000006",
-        "name": "SAPPHIRE PULSE Radeon RX 7800 XT 16GB",
-        "vram": 16,
-        "tdp": 263,
-        "length_mm": 280
-    },
-    {
-        "id": "gpu-000000007",
-        "name": "SAPPHIRE PULSE Radeon RX 7900 XTX 24GB",
-        "vram": 24,
-        "tdp": 355,
-        "length_mm": 313
-    }
+  {
+    "id": "gpu-000000001",
+    "name": "Gigabyte GeForce RTX 4060 WINDFORCE OC 8G",
+    "vram": 8,
+    "tdp": 115,
+    "length_mm": 192
+  },
+  {
+    "id": "gpu-000000002",
+    "name": "Gigabyte GeForce RTX 4070 SUPER WINDFORCE OC 12G",
+    "vram": 12,
+    "tdp": 220,
+    "length_mm": 261
+  },
+  {
+    "id": "gpu-000000003",
+    "name": "Gigabyte GeForce RTX 4080 SUPER GAMING OC 16G",
+    "vram": 16,
+    "tdp": 320,
+    "length_mm": 342
+  },
+  {
+    "id": "gpu-000000004",
+    "name": "Gigabyte GeForce RTX 4090 WINDFORCE V2 24G",
+    "vram": 24,
+    "tdp": 450,
+    "length_mm": 331
+  },
+  {
+    "id": "gpu-000000005",
+    "name": "SAPPHIRE PULSE Radeon RX 7600 8GB",
+    "vram": 8,
+    "tdp": 165,
+    "length_mm": 240
+  },
+  {
+    "id": "gpu-000000006",
+    "name": "SAPPHIRE PULSE Radeon RX 7800 XT 16GB",
+    "vram": 16,
+    "tdp": 263,
+    "length_mm": 280
+  },
+  {
+    "id": "gpu-000000007",
+    "name": "SAPPHIRE PULSE Radeon RX 7900 XTX 24GB",
+    "vram": 24,
+    "tdp": 355,
+    "length_mm": 313
+  },
+  {
+    "id": "gpu-000000008",
+    "name": "ASUS Prime Radeon RX 9070 XT OC Edition 16GB",
+    "vram": 16,
+    "tdp": 304,
+    "length_mm": 312,
+    "game_clock_mhz": 2460,
+    "boost_clock_mhz": 3010,
+    "oc_game_clock_mhz": 2480,
+    "oc_boost_clock_mhz": 3030,
+    "pcie_standard": "PCIe 5.0",
+    "recommended_psu_w": 750,
+    "pcie_slot_width": 2.5,
+    "display_outputs": [
+        {
+            "type": "HDMI",
+            "version": "2.1b",
+            "count": 1
+        },
+        {
+            "type": "DisplayPort",
+            "version": "2.1a",
+            "count": 3
+        }
+    ]
+  }
 ]

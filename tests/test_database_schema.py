@@ -48,6 +48,7 @@ class DatabaseSchemaTests(unittest.TestCase):
         self.assertIn("products", tables)
         self.assertIn("cpu_specs", tables)
         self.assertIn("gpu_specs", tables)
+        self.assertIn("gpu_display_outputs", tables)
         self.assertIn("case_specs", tables)
         self.assertIn("offers", tables)
 
@@ -58,6 +59,60 @@ class DatabaseSchemaTests(unittest.TestCase):
         ).fetchone()[0]
 
         self.assertEqual(table_count, len(SCHEMA_FILES))
+
+    def test_cpu_specs_includes_core_thread_and_clock_fields(self):
+        columns = {
+            row[1]
+            for row in self.connection.execute("PRAGMA table_info(cpu_specs)")
+        }
+
+        self.assertTrue(
+            {
+                "core_count",
+                "thread_count",
+                "performance_core_count",
+                "efficiency_core_count",
+                "base_clock_mhz",
+                "efficiency_core_base_clock_mhz",
+                "max_clock_mhz",
+                "max_clock_type",
+            }.issubset(columns)
+        )
+
+    def test_gpu_specs_includes_clocks_pcie_and_power_fields(self):
+        columns = {
+            row[1]
+            for row in self.connection.execute("PRAGMA table_info(gpu_specs)")
+        }
+
+        self.assertTrue(
+            {
+                "game_clock_mhz",
+                "boost_clock_mhz",
+                "oc_game_clock_mhz",
+                "oc_boost_clock_mhz",
+                "pcie_standard",
+                "recommended_psu_w",
+                "pcie_slot_width",
+            }.issubset(columns)
+        )
+
+    def test_gpu_display_outputs_stores_versioned_connector_counts(self):
+        columns = {
+            row[1]
+            for row in self.connection.execute(
+                "PRAGMA table_info(gpu_display_outputs)"
+            )
+        }
+
+        self.assertTrue(
+            {
+                "product_id",
+                "output_type",
+                "version",
+                "output_count",
+            }.issubset(columns)
+        )
 
     def test_component_catalogs_have_product_ids_and_names(self):
         for filename in CATALOG_FILES:

@@ -1,4 +1,5 @@
 # PC Price Build Engine
+
 ![Tests Workflow](https://github.com/kevinthedang/pc-price-build-engine/actions/workflows/tests.yml/badge.svg)
 
 A Python project for organizing PC part data, matching motherboards to CPUs, and screening PSUs by estimated wattage. The build engine also accepts a required storage drive and memory kit so the generated report reflects the actual selected parts.
@@ -68,13 +69,15 @@ curl -X POST http://127.0.0.1:8000/api/builds/generate \
   -d '{
     "cpu_id": "cpu-000000002",
     "gpu_id": "gpu-000000001",
-    "storage_id": "storage-000000001",
+    "storage_ids": ["storage-000000001", "storage-000000003"],
     "memory_id": "memory-000000003",
     "form_factor": "ATX",
     "mode": "budget",
     "budget_limit_cents": 150000
   }'
 ```
+
+Use `storage_ids` to include multiple drives. Each selected ID is included and priced; unselected storage rows are omitted by the frontend. The singular `storage_id` field remains supported for existing clients, but provide one field or the other, not both.
 
 The response includes selected parts, compatible motherboard/case/PSU/cooler options, a `compatibility_checks` list with `pass`, `fail`, `blocked`, or `unknown` statuses and user-readable reasons, the report text, and estimated pricing in integer cents. A build is marked `compatible: false` when a modeled compatibility check fails. `blocked` checks depend on an upstream fit check; `unknown` means the catalog does not contain enough data to verify that rule. Storage-interface compatibility is currently `unknown` because storage connector and motherboard slot specifications are not modeled. `form_factor` and `budget_limit_cents` are optional; `mode` accepts `cheapest`, `budget`, `balanced`, `premium`, or `top_of_line`. Pricing modes are currently reported but do not rerank complete builds. The frontend uses the options endpoint to hide incompatible memory and form factors by default; “Show incompatible options” reveals them with explanations. The generation endpoint remains authoritative and returns the same detailed checks. The frontend's Vite development server proxies `/api` requests to `http://127.0.0.1:8000`.
 
@@ -143,6 +146,7 @@ python3 backend/main.py --cpu-id cpu-000000002 --gpu-id gpu-000000001 --storage-
 > The CPU, GPU, storage, and memory IDs must exist in `data/cpus.json`, `data/gpus.json`, `data/storage.json`, and `data/memory.json`. The selected GPU is required and displayed in the report, while motherboard compatibility checks also require a matching CPU socket, compatible memory type, and optional form factor. `--cpu`, `--gpu`, `--storage`, and `--memory` are accepted aliases for the corresponding `--*-id` arguments. To list all motherboards that match the CPU and memory type, omit `--form-factor`:
 
 Example AM4 DDR4 system with shorter syntax:
+
 ```bash
 python3 backend/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storage-000000001 --memory memory-000000003
 ```
@@ -150,7 +154,7 @@ python3 backend/main.py --cpu cpu-000000002 --gpu gpu-000000001 --storage storag
 When provided, the form factor must exactly match a value in `data/motherboards.json`, such as `ATX`, `Micro-ATX`, or `Mini-ITX`.
 
 > [!NOTE]
-> PSU filtering uses a rough minimum-wattage estimate: CPU TDP + GPU TDP + 200 W for the rest of the system. This is only a screening heuristic, not a guarantee of compatibility or safety; check the component and PSU manufacturers' recommendations. The efficiency label is displayed but does not determine PSU quality or wattage compatibility.
+> PSU filtering uses the greater of the estimated system requirement (CPU TDP + GPU TDP + 200 W for the rest of the system) and the selected GPU's manufacturer-recommended minimum PSU wattage, when available. This is only a screening heuristic, not a guarantee of compatibility or safety; check the component and PSU manufacturers' recommendations. The efficiency label is displayed but does not determine PSU quality or wattage compatibility.
 
 ## Data
 
@@ -159,6 +163,11 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 - `id`: unique CPU identifier
 - `name`: processor name
 - `socket`: CPU socket
+- `core_count` and `thread_count`: total physical cores and logical threads
+- `performance_core_count` and `efficiency_core_count`: optional P-core/E-core breakdown for hybrid CPUs
+- `base_clock_mhz` and `max_clock_mhz`: advertised base and maximum boost/turbo clock speeds
+- `efficiency_core_base_clock_mhz`: optional base clock for E-cores on hybrid CPUs
+- `max_clock_type`: whether the maximum clock is advertised as `Max boost` or `Max turbo`
 - `tdp`: thermal design power in watts, as an integer
 - `stock_cooler_included`: whether the standard boxed CPU includes a stock cooler
 
@@ -197,6 +206,12 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 - `vram`: video memory in GB, as an integer
 - `tdp`: graphics card power in watts, as an integer
 - `length_mm`: exact card variant length in millimeters
+- `game_clock_mhz` and `boost_clock_mhz`: optional manufacturer-advertised game and boost clocks
+- `oc_game_clock_mhz` and `oc_boost_clock_mhz`: optional overclocked-mode game and boost clocks
+- `pcie_standard`: optional PCIe generation, such as `PCIe 5.0`
+- `recommended_psu_w`: optional manufacturer-recommended minimum system PSU wattage
+- `pcie_slot_width`: optional physical card thickness in slot widths, including fractional values
+- `display_outputs`: optional list of display connectors, each with a `type`, optional `version`, and `count`
 
 > [!NOTE]
 > GPU entries are specific partner-card variants because physical length differs across cards using the same GPU chip.
@@ -239,9 +254,9 @@ When provided, the form factor must exactly match a value in `data/motherboards.
 
 `data/offers.json` contains retailer offers for components. Each offer identifies a component using `component_type` and `product_id`; the product ID must match the component's `id` in its catalog. Offers include retailer, price, shipping, currency, availability, condition, seller, and the time the offer was checked. The report uses the lowest price-plus-shipping offer when available; components without a matching offer contribute `$0.00` to the estimate. Prices are estimates and may be stale.
 
-The SQLite schema is normalized: each JSON component's `id` and `name` are stored once in `products`, while component-specific fields are stored in the corresponding specs table using `product_id`. For example, a PSU's `id` and `name` go into `products`, and its `wattage` and `efficiency` go into `psu_specs`. Offers reference the shared product row. Offer prices and shipping are stored as integer cents. Apply SQL files from both `database/core/` and `database/specs/` in numeric filename order, and enable SQLite foreign-key enforcement on each connection. The schema tests validate the DDL and ensure each source catalog has product IDs and names.
+The SQLite schema is normalized: each JSON component's `id` and `name` are stored once in `products`, while component-specific fields are stored in the corresponding specs table using `product_id`. For example, a PSU's `id` and `name` go into `products`, and its `wattage` and `efficiency` go into `psu_specs`. CPU-specific fields, including core/thread counts and advertised clock speeds, are defined in `cpu_specs`; optional GPU clocks, PCIe generation, manufacturer PSU recommendation, and physical slot width are defined in `gpu_specs`. GPU display connectors are stored as one row per connector type/version in `gpu_display_outputs`. Offers reference the shared product row. Offer prices and shipping are stored as integer cents. Apply SQL files from both `database/core/` and `database/specs/` in numeric filename order, and enable SQLite foreign-key enforcement on each connection. The schema tests validate the DDL and ensure each source catalog has product IDs and names. The database is schema-only at present: catalogs remain JSON seed files, and database loading and runtime queries have not been implemented.
 
-GPU dimensions and case clearances are based on manufacturer specifications: [Gigabyte RTX 4060](https://www.gigabyte.com/Graphics-Card/GV-N4060WF2OC-8GD/sp), [RTX 4070 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N407SWF3OC-12GD-rev-10/sp), [RTX 4080 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N408SGAMING-OC-16GD/sp), [RTX 4090](https://www.gigabyte.com/Graphics-Card/GV-N4090WF3V2-24GD-rev-10-11/sp), [SAPPHIRE RX 7600](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7600-8g-gddr6), [RX 7800 XT](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7800-xt-16g-gddr6), [RX 7900 XTX](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7900-xtx-24g-gddr6), [Corsair 4000D Airflow](https://www.corsair.com/us/en/p/pc-cases/cc-9011200-ww/4000d-airflow-tempered-glass-mid-tower-atx-case-black-cc-9011200-ww), [Cooler Master NR200P](https://www.coolermaster.com/en-global/products/masterbox-nr200p/), [Lian Li A3-mATX](https://lian-li.com/product/a3-matx/), and [Fractal Design Pop Mini Air](https://www.fractal-design.com/products/cases/pop-series/pop-mini-air/pop-mini-air-rgb-black-tg-clear-tint/).
+GPU dimensions and case clearances are based on manufacturer specifications: [Gigabyte RTX 4060](https://www.gigabyte.com/Graphics-Card/GV-N4060WF2OC-8GD/sp), [RTX 4070 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N407SWF3OC-12GD-rev-10/sp), [RTX 4080 SUPER](https://www.gigabyte.com/Graphics-Card/GV-N408SGAMING-OC-16GD/sp), [RTX 4090](https://www.gigabyte.com/Graphics-Card/GV-N4090WF3V2-24GD-rev-10-11/sp), [SAPPHIRE RX 7600](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7600-8g-gddr6), [RX 7800 XT](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7800-xt-16g-gddr6), [RX 7900 XTX](https://www.sapphiretech.com/en/consumer/pulse-radeon-rx-7900-xtx-24g-gddr6), and [ASUS Prime RX 9070 XT OC Edition specifications](https://www.asus.com/us/motherboards-components/graphics-cards/prime/prime-rx9070xt-o16g/techspec/). The ASUS catalog entry records its advertised default and OC-mode clocks, PCIe 5.0 interface, 750 W PSU recommendation, and 2.5-slot thickness. Case references: [Corsair 4000D Airflow](https://www.corsair.com/us/en/p/pc-cases/cc-9011200-ww/4000d-airflow-tempered-glass-mid-tower-atx-case-black-cc-9011200-ww), [Cooler Master NR200P](https://www.coolermaster.com/en-global/products/masterbox-nr200p/), [Lian Li A3-mATX](https://lian-li.com/product/a3-matx/), and [Fractal Design Pop Mini Air](https://www.fractal-design.com/products/cases/pop-series/pop-mini-air/pop-mini-air-rgb-black-tg-clear-tint/).
 
 Cooler socket and dimension data is based on [Thermalright Peerless Assassin 120 SE](https://www.thermalright.com/product/peerless-assassin-120-se/), [Frozen Notte 240](https://www.thermalright.com/product/frozen-notte-240-black-argb/), and [Frozen Notte 360](https://www.thermalright.com/product/frozen-notte-360-black-argb/) manufacturer specifications. The stock-cooler flags assume boxed retail CPU versions; Intel tray/bulk CPUs may differ.
 

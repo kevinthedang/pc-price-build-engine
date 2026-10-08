@@ -1,7 +1,7 @@
 import os
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -41,8 +41,13 @@ if allowed_origins:
 class GenerateBuildRequest(BaseModel):
     cpu_id: str
     gpu_id: str
-    storage_id: str
-    memory_id: str
+    storage_id: str | None = None
+    storage_ids: list[str] | None = Field(default=None, min_length=1)
+    memory_id: str | None = None
+    memory_type: Literal["DDR4", "DDR5"] | None = None
+    memory_capacity_gb: int | None = Field(default=None, gt=0)
+    memory_module_count: int | None = Field(default=None, gt=0)
+    memory_speed_mhz: int | None = Field(default=None, gt=0)
     form_factor: str | None = None
     mode: Literal["cheapest", "budget", "balanced", "premium", "top_of_line"] = (
         "cheapest"
@@ -88,12 +93,20 @@ def get_compatible_build_options(
     cpu_id: str | None = None,
     form_factor: str | None = None,
     memory_id: str | None = None,
+    memory_type: str | None = None,
+    memory_capacity_gb: int | None = Query(default=None, gt=0),
+    memory_module_count: int | None = Query(default=None, gt=0),
+    memory_speed_mhz: int | None = Query(default=None, gt=0),
 ):
     try:
         return get_build_options(
             cpu_id=cpu_id,
             form_factor=form_factor,
             memory_id=memory_id,
+            memory_type=memory_type,
+            memory_capacity_gb=memory_capacity_gb,
+            memory_module_count=memory_module_count,
+            memory_speed_mhz=memory_speed_mhz,
         )
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
@@ -101,6 +114,35 @@ def get_compatible_build_options(
 
 @app.post("/api/builds/generate")
 def create_build(request: GenerateBuildRequest):
+    if request.storage_id is not None and request.storage_ids is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide either storage_id or storage_ids, not both.",
+        )
+    if request.storage_id is None and not request.storage_ids:
+        raise HTTPException(
+            status_code=422,
+            detail="Select at least one storage drive.",
+        )
+    profile_values = (
+        request.memory_type,
+        request.memory_capacity_gb,
+        request.memory_module_count,
+        request.memory_speed_mhz,
+    )
+    has_profile_values = any(value is not None for value in profile_values)
+    if request.memory_id is None and not all(
+        value is not None for value in profile_values
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Provide a memory_id or a complete generic memory profile.",
+        )
+    if request.memory_id is not None and has_profile_values:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide either memory_id or a generic memory profile, not both.",
+        )
     try:
         return generate_build(
             request.cpu_id,
@@ -110,6 +152,11 @@ def create_build(request: GenerateBuildRequest):
             form_factor=request.form_factor,
             pricing_mode=request.mode,
             budget_limit_cents=request.budget_limit_cents,
+            memory_type=request.memory_type,
+            memory_capacity_gb=request.memory_capacity_gb,
+            memory_module_count=request.memory_module_count,
+            memory_speed_mhz=request.memory_speed_mhz,
+            storage_ids=request.storage_ids,
         )
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error

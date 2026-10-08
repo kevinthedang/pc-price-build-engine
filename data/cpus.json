@@ -1,65 +1,114 @@
 [
-    {
-        "id": "cpu-000000001",
-        "socket": "AM4",
-        "name": "Ryzen 5 5500",
-        "tdp": 65,
-        "stock_cooler_included": true
-    },
-    {
-        "id": "cpu-000000002",
-        "socket": "AM4",
-        "name": "Ryzen 5 5600",
-        "tdp": 65,
-        "stock_cooler_included": true
-    },
-    {
-        "id": "cpu-000000003",
-        "socket": "AM4",
-        "name": "Ryzen 5 5600X",
-        "tdp": 65,
-        "stock_cooler_included": true
-    },
-    {
-        "id": "cpu-000000004",
-        "socket": "AM4",
-        "name": "Ryzen 7 5800X3D",
-        "tdp": 105,
-        "stock_cooler_included": false
-    },
-    {
-        "id": "cpu-000000005",
-        "socket": "LGA1700",
-        "name": "Core i5-12400F",
-        "tdp": 65,
-        "stock_cooler_included": true
-    },
-    {
-        "id": "cpu-000000006",
-        "socket": "LGA1700",
-        "name": "Core i5-13600K",
-        "tdp": 125,
-        "stock_cooler_included": false
-    },
-    {
-        "id": "cpu-000000007",
-        "socket": "AM5",
-        "name": "Ryzen 5 7600",
-        "tdp": 65,
-        "stock_cooler_included": true
-    },
-    {
-        "id": "cpu-000000008",
-        "socket": "AM5",
-        "name": "Ryzen 7 7700",
-        "tdp": 65,
-        "stock_cooler_included": true
-    },
-    {
-        "id": "cpu-000000009",
-        "socket": "AM5",
-        "name": "Ryzen 7 7800X3D",
-        "tdp": 120,
-        "stock_cooler_included": false
-    }
+  {
+    "id": "cpu-000000001",
+    "socket": "AM4",
+    "name": "Ryzen 5 5500",
+    "core_count": 6,
+    "thread_count": 12,
+    "base_clock_mhz": 3600,
+    "max_clock_mhz": 4200,
+    "max_clock_type": "Max boost",
+    "tdp": 65,
+    "stock_cooler_included": true
+  },
+  {
+    "id": "cpu-000000002",
+    "socket": "AM4",
+    "name": "Ryzen 5 5600",
+    "core_count": 6,
+    "thread_count": 12,
+    "base_clock_mhz": 3500,
+    "max_clock_mhz": 4400,
+    "max_clock_type": "Max boost",
+    "tdp": 65,
+    "stock_cooler_included": true
+  },
+  {
+    "id": "cpu-000000003",
+    "socket": "AM4",
+    "name": "Ryzen 5 5600X",
+    "core_count": 6,
+    "thread_count": 12,
+    "base_clock_mhz": 3700,
+    "max_clock_mhz": 4600,
+    "max_clock_type": "Max boost",
+    "tdp": 65,
+    "stock_cooler_included": true
+  },
+  {
+    "id": "cpu-000000004",
+    "socket": "AM4",
+    "name": "Ryzen 7 5800X3D",
+    "core_count": 8,
+    "thread_count": 16,
+    "base_clock_mhz": 3400,
+    "max_clock_mhz": 4500,
+    "max_clock_type": "Max boost",
+    "tdp": 105,
+    "stock_cooler_included": false
+  },
+  {
+    "id": "cpu-000000005",
+    "socket": "LGA1700",
+    "name": "Core i5-12400F",
+    "core_count": 6,
+    "thread_count": 12,
+    "performance_core_count": 6,
+    "base_clock_mhz": 2500,
+    "max_clock_mhz": 4400,
+    "max_clock_type": "Max turbo",
+    "tdp": 65,
+    "stock_cooler_included": true
+  },
+  {
+    "id": "cpu-000000006",
+    "socket": "LGA1700",
+    "name": "Core i5-13600K",
+    "core_count": 14,
+    "thread_count": 20,
+    "performance_core_count": 6,
+    "efficiency_core_count": 8,
+    "base_clock_mhz": 3500,
+    "efficiency_core_base_clock_mhz": 2600,
+    "max_clock_mhz": 5100,
+    "max_clock_type": "Max turbo",
+    "tdp": 125,
+    "stock_cooler_included": false
+  },
+  {
+    "id": "cpu-000000007",
+    "socket": "AM5",
+    "name": "Ryzen 5 7600",
+    "core_count": 6,
+    "thread_count": 12,
+    "base_clock_mhz": 3800,
+    "max_clock_mhz": 5100,
+    "max_clock_type": "Max boost",
+    "tdp": 65,
+    "stock_cooler_included": true
+  },
+  {
+    "id": "cpu-000000008",
+    "socket": "AM5",
+    "name": "Ryzen 7 7700",
+    "core_count": 8,
+    "thread_count": 16,
+    "base_clock_mhz": 3800,
+    "max_clock_mhz": 5300,
+    "max_clock_type": "Max boost",
+    "tdp": 65,
+    "stock_cooler_included": true
+  },
+  {
+    "id": "cpu-000000009",
+    "socket": "AM5",
+    "name": "Ryzen 7 7800X3D",
+    "core_count": 8,
+    "thread_count": 16,
+    "base_clock_mhz": 4200,
+    "max_clock_mhz": 5000,
+    "max_clock_type": "Max boost",
+    "tdp": 120,
+    "stock_cooler_included": false
+  }
 ]
