@@ -156,12 +156,6 @@
 	let exchangeRateDate = $state('');
 	let exchangeRateError = $state('');
 	let buildResult = $state<BuildResult | null>(null);
-	let canGenerateBuild = $derived(
-		Boolean(selectedCpu && selectedGpu && selectedStorageIds.length && selectedMemoryKit) &&
-			!isGenerating &&
-			apiStatus === 'online' &&
-			!catalogError
-	);
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
 	const supportedCurrencies: { code: CurrencyCode; name: string }[] = [
 		{ code: 'USD', name: 'US Dollar' },
@@ -259,6 +253,12 @@
 	);
 	let selectedMemoryKit = $derived(
 		compatibleMemoryOptions.find((option) => option.item.id === selectedMemoryKitId)
+	);
+	let canGenerateBuild = $derived(
+		Boolean(selectedCpu && selectedGpu && selectedStorageIds.length && selectedMemoryKit) &&
+			!isGenerating &&
+			apiStatus === 'online' &&
+			!catalogError
 	);
 	let hasMemoryCriteria = $derived(
 		Boolean(selectedMemoryType && selectedMemoryCapacityKey && selectedMemorySpeed)
